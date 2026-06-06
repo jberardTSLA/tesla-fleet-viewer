@@ -871,20 +871,6 @@ function applyFilters() {
     renderPostponeTable();
     renderArrivalsTable();
     renderLocationCards();
-
-    // Save to localStorage for map page
-    try {
-        const mapData = rawData.map(r => ({
-            orderId: r.orderId, location: r.location, model: r.model,
-            status: r.status, date: r.date, dateStr: r.dateStr,
-            lastKnownLocation: r.lastKnownLocation || '',
-            isContainmentHold: r.isContainmentHold || false,
-            finalPaymentStatus: r.finalPaymentStatus || '',
-            orderChannel: r.orderChannel || '',
-            reservationNumber: r.reservationNumber || '',
-        }));
-        localStorage.setItem('teslaFleetData', JSON.stringify(mapData));
-    } catch(e) { console.warn('localStorage save failed:', e); }
 }
 
 function resetFilters() {
@@ -2141,4 +2127,203 @@ function setGameMessage(msg, type) {
     const el = document.getElementById('gameMessage');
     el.textContent = msg;
     el.className = 'game-message ' + (type || '');
+}
+
+/* ============================================================
+   FLEET MAP — Overlay integrata nella dashboard
+   Usa direttamente rawData/filteredData, zero localStorage.
+   ============================================================ */
+
+const MAP_HUBS = {
+    'milano linate sc':[45.4408,9.2773],'milano linate':[45.4408,9.2773],'milano':[45.464,9.19],
+    'roma magliana sc':[41.8417,12.4292],'roma magliana':[41.8417,12.4292],
+    'roma salaria sc':[41.935,12.51],'roma salaria':[41.935,12.51],'roma':[41.9028,12.4964],
+    'napoli afragola sc':[40.9211,14.3117],'napoli afragola':[40.9211,14.3117],'napoli':[40.8518,14.2681],
+    'torino moncalieri sc':[44.9931,7.6828],'torino moncalieri':[44.9931,7.6828],'torino':[45.07,7.687],
+    'genova sc':[44.4056,8.9463],'genova':[44.4056,8.9463],
+    'bologna sc':[44.4949,11.3426],'bologna':[44.4949,11.3426],
+    'firenze sc':[43.7696,11.2558],'firenze':[43.7696,11.2558],'florence':[43.7696,11.2558],
+    'padova sc':[45.4064,11.8768],'padova':[45.4064,11.8768],
+    'brescia sc':[45.5416,10.2118],'brescia':[45.5416,10.2118],
+    'catania sc':[37.5079,15.0934],'catania':[37.5079,15.0934],
+    'palermo sc':[38.1157,13.3615],'palermo':[38.1157,13.3615],
+    'bari sc':[41.1171,16.8719],'bari':[41.1171,16.8719],
+    'verona sc':[45.4384,10.9916],'verona':[45.4384,10.9916],
+    'livorno hub':[43.5485,10.3106],'livorno':[43.5485,10.3106],
+    'venezia terminal':[45.4408,12.3155],'venezia':[45.4408,12.3155],
+    'civitavecchia':[42.093,11.7968],
+    'campania':[40.85,14.27],'marcianise':[41.038,14.296],
+    'lombardia':[45.47,9.19],'vittuone':[45.49,8.95],
+    'veneto':[45.44,11.00],'lazio':[41.90,12.50],
+    // Transit Europa
+    'neuss compound':[51.2,6.683],'neuss':[51.2,6.683],
+    'zeebrugge port':[51.333,3.183],'zeebrugge':[51.333,3.183],
+    'tilburg hub':[51.556,5.092],'tilburg':[51.556,5.092],
+    'ghent terminal':[51.054,3.717],'ghent':[51.054,3.717],
+    'gioia tauro porto':[38.424,15.899],'gioia tauro':[38.424,15.899],
+    'genova porto':[44.41,8.92],'livorno porto':[43.55,10.3],
+    'milano compound':[45.45,9.28],'roma compound':[41.85,12.43],
+    'at sc':[42.5,12.5], // generico Italia centro
+};
+
+function _findCoords(name) {
+    if (!name) return null;
+    const low = name.toLowerCase().trim();
+    if (MAP_HUBS[low]) return MAP_HUBS[low];
+    // Partial match
+    for (const [key, coords] of Object.entries(MAP_HUBS)) {
+        if (low.includes(key) || key.includes(low)) return coords;
+    }
+    // Extract city from complex names like "EU-IT-Veneto-Verona-31-Viale delle Nazioni"
+    const parts = low.split(/[-_,]/);
+    for (const part of parts) {
+        const p = part.trim();
+        if (p.length >= 4 && MAP_HUBS[p]) return MAP_HUBS[p];
+    }
+    return null;
+}
+
+function _isCarAtHub(r) {
+    const pos = (r.lastKnownLocation || '').trim().toLowerCase();
+    const hub = (r.location || '').trim().toLowerCase();
+    if (pos && hub) {
+        if (pos === hub || pos.includes(hub) || hub.includes(pos)) return true;
+        const hubCity = hub.replace(/\s*(sc|service center|hub|compound|terminal|porto)\s*/gi, '').trim();
+        if (hubCity.length >= 3 && pos.includes(hubCity)) return true;
+        if (pos === 'at sc' || pos.includes('at service center')) return true;
+        return false;
+    }
+    if (!r.date) return false;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const arrival = new Date(r.date); arrival.setHours(0,0,0,0);
+    return arrival <= today;
+}
+
+let _fleetMap = null;
+let _mapMarkerLayer = null;
+
+function openMap() {
+    const overlay = document.getElementById('mapOverlay');
+    overlay.style.display = 'flex';
+
+    if (!_fleetMap) {
+        _fleetMap = L.map('fleetMap', { center: [42.5, 12.5], zoom: 6 });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OSM &copy; CARTO',
+            subdomains: 'abcd', maxZoom: 19
+        }).addTo(_fleetMap);
+        _mapMarkerLayer = L.layerGroup().addTo(_fleetMap);
+    }
+
+    setTimeout(() => { _fleetMap.invalidateSize(); updateMapMarkers(); }, 100);
+}
+
+function closeMap() {
+    document.getElementById('mapOverlay').style.display = 'none';
+}
+
+function updateMapMarkers() {
+    if (!_fleetMap || !_mapMarkerLayer) return;
+    _mapMarkerLayer.clearLayers();
+
+    const filter = document.getElementById('mapFilter').value;
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // Classify each order
+    const orders = rawData.map(r => {
+        const atHub = _isCarAtHub(r);
+        const isCH = r.isContainmentHold || false;
+        const payIncomplete = r.finalPaymentStatus && !(['COMPLETE','PAID','RECEIVED'].includes((r.finalPaymentStatus||'').toUpperCase()));
+        return { ...r, _atHub: atHub, _isCH: isCH, _payIncomplete: payIncomplete };
+    });
+
+    // Apply filter
+    let filtered;
+    switch (filter) {
+        case 'ground':  filtered = orders.filter(o => o._atHub); break;
+        case 'transit':  filtered = orders.filter(o => !o._atHub); break;
+        case 'ch':       filtered = orders.filter(o => o._isCH); break;
+        case 'payment':  filtered = orders.filter(o => o._payIncomplete && o._atHub); break;
+        default:         filtered = orders;
+    }
+
+    // Group by location (for hub markers)
+    const hubGroups = {};
+    // Group by lastKnownLocation (for transit markers)
+    const posGroups = {};
+    let totalGround = 0, totalTransit = 0;
+
+    filtered.forEach(o => {
+        const hub = o.location || 'N/A';
+        if (!hubGroups[hub]) hubGroups[hub] = { orders: [], ground: 0, transit: 0, ch: 0, models: {} };
+        hubGroups[hub].orders.push(o);
+        hubGroups[hub].models[o.model] = (hubGroups[hub].models[o.model] || 0) + 1;
+        if (o._isCH) hubGroups[hub].ch++;
+
+        if (o._atHub) { hubGroups[hub].ground++; totalGround++; }
+        else { hubGroups[hub].transit++; totalTransit++; }
+
+        // Transit markers by position
+        const pos = (o.lastKnownLocation || '').trim();
+        if (pos && !o._atHub && pos.toLowerCase() !== 'in transit') {
+            if (!posGroups[pos]) posGroups[pos] = [];
+            posGroups[pos].push(o);
+        }
+    });
+
+    // Stats
+    document.getElementById('mapStatTotal').textContent = filtered.length + ' totali';
+    document.getElementById('mapStatGround').textContent = totalGround + ' a terra';
+    document.getElementById('mapStatTransit').textContent = totalTransit + ' in transito';
+
+    const allCoords = [];
+
+    // Hub markers
+    Object.entries(hubGroups).forEach(([hub, data]) => {
+        const coords = _findCoords(hub);
+        if (!coords) return;
+        allCoords.push(coords);
+
+        const total = data.orders.length;
+        const size = Math.max(26, Math.min(54, 20 + total * 0.6));
+        const color = data.ch > 0 ? '#ef4444' : (data.ground > 0 ? '#22c55e' : '#3b82f6');
+
+        const icon = L.divIcon({
+            html: `<div class="map-hub-marker" style="width:${size}px;height:${size}px;background:${color};font-size:${size > 38 ? 13 : 10}px;box-shadow:0 0 12px ${color}80;">${total}</div>`,
+            className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
+        });
+
+        const modelHtml = Object.entries(data.models).sort((a,b)=>b[1]-a[1]).slice(0,6)
+            .map(([m,q]) => `<span class="popup-model-tag">${escapeHtml(m)}: ${q}</span>`).join('');
+
+        const popup = `<div class="popup-hub">${escapeHtml(hub)}</div>
+            <div class="popup-row"><span class="popup-lbl">Totale</span><span class="popup-val">${total}</span></div>
+            <div class="popup-row"><span class="popup-lbl">A terra</span><span class="popup-val" style="color:#22c55e;">${data.ground}</span></div>
+            <div class="popup-row"><span class="popup-lbl">In arrivo</span><span class="popup-val" style="color:#3b82f6;">${data.transit}</span></div>
+            ${data.ch ? `<div class="popup-row"><span class="popup-lbl">CH</span><span class="popup-val" style="color:#ef4444;">${data.ch}</span></div>` : ''}
+            <div class="popup-models">${modelHtml}</div>`;
+
+        L.marker(coords, { icon }).addTo(_mapMarkerLayer).bindPopup(popup, { maxWidth: 280 });
+    });
+
+    // Transit markers
+    Object.entries(posGroups).forEach(([pos, vehicles]) => {
+        const coords = _findCoords(pos);
+        if (!coords) return;
+        allCoords.push(coords);
+
+        const size = Math.max(20, Math.min(38, 16 + vehicles.length));
+        const icon = L.divIcon({
+            html: `<div class="map-hub-marker" style="width:${size}px;height:${size}px;background:#eab308;font-size:${size > 28 ? 11 : 9}px;opacity:0.85;">${vehicles.length}</div>`,
+            className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
+        });
+
+        L.marker(coords, { icon }).addTo(_mapMarkerLayer)
+            .bindPopup(`<div class="popup-hub" style="color:#eab308;">${escapeHtml(pos.toUpperCase())}</div>
+                <div class="popup-row"><span class="popup-lbl">In transito</span><span class="popup-val">${vehicles.length}</span></div>`);
+    });
+
+    // Fit bounds
+    if (allCoords.length > 1) _fleetMap.fitBounds(allCoords, { padding: [30, 30] });
+    else if (allCoords.length === 1) _fleetMap.setView(allCoords[0], 8);
 }
