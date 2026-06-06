@@ -2755,10 +2755,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     margin-bottom: 20px;
 }
 
-.boot-tesla-t {
-    height: 80px;
+.boot-tesla-logo {
+    height: 60px;
     width: auto;
-    filter: drop-shadow(0 0 20px rgba(59,130,246,0.4));
+    filter: drop-shadow(0 0 20px rgba(225,32,38,0.4));
     animation: bootLogoFloat 3s ease-in-out infinite;
 }
 
