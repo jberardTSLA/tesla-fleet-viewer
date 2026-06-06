@@ -867,6 +867,7 @@ function applyFilters() {
     updateKPIs();
     renderCharts();
     renderPivotTable();
+    renderSpecialistSection();
     renderReadySection();
     renderPostponeTable();
     renderArrivalsTable();
@@ -1273,6 +1274,144 @@ function renderPostponeTable() {
 function exportPostponeCSV() {
     const table = document.getElementById('postponeTable');
     downloadTableCSV(table, 'tesla_fleet_da_posticipare.csv');
+}
+
+// ─── Specialist Urgency Dashboard ───────────────────────────
+function renderSpecialistSection() {
+    const section = document.getElementById('specialistSection');
+    if (!section) return;
+
+    const specialistFilter = document.getElementById('filterSpecialist');
+    const selectedSpec = specialistFilter ? specialistFilter.value : 'all';
+
+    // Hide if no specialist selected
+    if (selectedSpec === 'all' || !selectedSpec) {
+        section.style.display = 'none';
+        return;
+    }
+
+    // Get specialist's orders
+    const specOrders = filteredData.filter(r => (r.deliverySpecialist || '') === selectedSpec);
+    if (specOrders.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    document.getElementById('specialistName').textContent = selectedSpec;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const hasFile2 = specOrders.some(r => r.finalPaymentStatus !== undefined);
+
+    // Classify each order for urgency
+    const actions = [];
+
+    specOrders.forEach(r => {
+        const arrival = r.date ? new Date(r.date) : null;
+        if (arrival) arrival.setHours(0, 0, 0, 0);
+        const atHub = arrival && arrival <= today;
+        const daysGround = atHub && arrival ? Math.round((today - arrival) / 86400000) : 0;
+
+        // Check position-based "a terra"
+        const pos = (r.lastKnownLocation || '').toLowerCase().trim();
+        const hub = (r.location || '').toLowerCase().trim();
+        const posAtHub = pos && hub && (pos === hub || pos.includes(hub) || hub.includes(pos) || pos === 'at sc');
+        const reallyAtHub = posAtHub || (atHub && !pos);
+
+        const payComplete = hasFile2 ? (['COMPLETE', 'PAID', 'RECEIVED'].includes((r.finalPaymentStatus || '').toUpperCase())) : null;
+        const isCH = r.isContainmentHold || false;
+
+        // 1. CRITICAL: Containment Hold — a terra ma bloccato
+        if (isCH && reallyAtHub) {
+            actions.push({ order: r, urgency: 'critical', priority: 1,
+                action: 'Risolvere Containment Hold', detail: 'Auto a terra ma CH attivo — sbloccare prima della consegna' });
+        }
+        // 2. CRITICAL: A terra > 6 giorni
+        else if (reallyAtHub && daysGround > 6) {
+            actions.push({ order: r, urgency: 'critical', priority: 2,
+                action: 'Scaduto — ' + daysGround + 'gg a terra', detail: 'KPI superato! Consegnare o rischedulare immediatamente' });
+        }
+        // 3. HIGH: A terra + pagamento incompleto
+        else if (reallyAtHub && payComplete === false) {
+            actions.push({ order: r, urgency: 'high', priority: 3,
+                action: 'Sollecitare pagamento', detail: 'Auto a terra ma ' + (r.finalPaymentStatus || 'INCOMPLETE') + ' — chiamare cliente' });
+        }
+        // 4. HIGH: Consegna prima dell'arrivo
+        else if (r.deliveryDate && r.date) {
+            const del = new Date(r.deliveryDate); del.setHours(0,0,0,0);
+            const arr = new Date(r.date); arr.setHours(0,0,0,0);
+            if (del < arr) {
+                const delay = Math.round((arr - del) / 86400000);
+                actions.push({ order: r, urgency: 'high', priority: 4,
+                    action: 'Posticipare consegna +' + delay + 'gg', detail: 'Consegna ' + r.deliveryDateStr + ' ma auto arriva ' + r.dateStr });
+            }
+        }
+        // 5. MEDIUM: A terra + pagamento ok → pronta per consegna
+        if (reallyAtHub && payComplete === true && !isCH) {
+            actions.push({ order: r, urgency: 'medium', priority: 5,
+                action: 'Schedulare consegna', detail: daysGround + 'gg a terra — ' + (r.isScheduled ? 'Schedulato' : 'DA SCHEDULARE') });
+        }
+        // 6. LOW: Arriva entro 48h
+        else if (!reallyAtHub && r.daysUntil !== null && r.daysUntil >= 0 && r.daysUntil <= 2) {
+            actions.push({ order: r, urgency: 'low', priority: 6,
+                action: 'In arrivo tra ' + r.daysUntil + 'gg', detail: 'Preparare documentazione — arrivo ' + r.dateStr });
+        }
+    });
+
+    // Sort by priority
+    actions.sort((a, b) => a.priority - b.priority);
+
+    // KPI summary
+    const kpiRow = document.getElementById('specKpiRow');
+    const totalOrders = specOrders.length;
+    const criticalCount = actions.filter(a => a.urgency === 'critical').length;
+    const highCount = actions.filter(a => a.urgency === 'high').length;
+    const mediumCount = actions.filter(a => a.urgency === 'medium').length;
+    const groundCount = specOrders.filter(r => {
+        const a = r.date ? new Date(r.date) : null;
+        return a && a <= today;
+    }).length;
+
+    kpiRow.innerHTML = `
+        <div class="spec-kpi"><span class="spec-kpi-val" style="color:#06b6d4;">${totalOrders}</span><span class="spec-kpi-label">Ordini totali</span></div>
+        <div class="spec-kpi"><span class="spec-kpi-val" style="color:#ef4444;">${criticalCount}</span><span class="spec-kpi-label">Critici</span></div>
+        <div class="spec-kpi"><span class="spec-kpi-val" style="color:#f97316;">${highCount}</span><span class="spec-kpi-label">Alta priorità</span></div>
+        <div class="spec-kpi"><span class="spec-kpi-val" style="color:#eab308;">${mediumCount}</span><span class="spec-kpi-label">Da schedulare</span></div>
+        <div class="spec-kpi"><span class="spec-kpi-val" style="color:#22c55e;">${groundCount}</span><span class="spec-kpi-label">A terra</span></div>
+        <div class="spec-kpi"><span class="spec-kpi-val" style="color:#3b82f6;">${actions.length}</span><span class="spec-kpi-label">Azioni da fare</span></div>
+    `;
+
+    // Render table
+    const body = document.getElementById('specialistBody');
+    if (actions.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#5a7a9e;padding:20px;">Nessuna azione urgente — tutto sotto controllo</td></tr>';
+        return;
+    }
+
+    const urgencyLabels = { critical: 'CRITICO', high: 'ALTA', medium: 'MEDIA', low: 'INFO' };
+
+    body.innerHTML = actions.map(a => {
+        const r = a.order;
+        const rnCell = r.reservationNumber
+            ? `<td><a href="https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=${encodeURIComponent(r.reservationNumber)}" target="_blank" class="wdo-link">${escapeHtml(r.reservationNumber)}</a></td>`
+            : '<td>—</td>';
+
+        return `<tr class="${a.urgency === 'critical' ? 'row-containment' : a.urgency === 'high' ? 'row-imminent' : ''}">
+            <td><span class="urgency-tag urgency-${a.urgency}">${urgencyLabels[a.urgency]}</span></td>
+            <td>${escapeHtml(r.orderId)}</td>
+            ${rnCell}
+            <td>${escapeHtml(r.location)}</td>
+            <td>${escapeHtml(r.model)}</td>
+            <td class="action-text" style="color:${a.urgency==='critical'?'#ef4444':a.urgency==='high'?'#f97316':a.urgency==='medium'?'#eab308':'#3b82f6'}">${escapeHtml(a.action)}</td>
+            <td style="font-size:0.75rem;color:#8ba3c7;max-width:250px;">${escapeHtml(a.detail)}</td>
+        </tr>`;
+    }).join('');
+}
+
+function exportSpecialistCSV() {
+    const table = document.getElementById('specialistTable');
+    if (table) downloadTableCSV(table, 'tesla_fleet_specialist_urgenze.csv');
 }
 
 // ─── Ready to Deliver Section ───────────────────────────────

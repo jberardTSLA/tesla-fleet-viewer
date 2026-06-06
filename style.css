@@ -3262,3 +3262,92 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     margin-left: auto;
     white-space: nowrap;
 }
+
+/* ============================================================
+   SPECIALIST URGENCY DASHBOARD
+   ============================================================ */
+
+.table-card-specialist {
+    border: 1px solid rgba(6,182,212,0.3) !important;
+    background: rgba(6,182,212,0.02) !important;
+}
+
+.table-card-specialist .table-header h3 {
+    color: var(--accent-cyan);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.spec-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.spec-kpi {
+    padding: 12px 14px;
+    background: rgba(10,22,40,0.5);
+    border: 1px solid rgba(59,130,246,0.1);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.spec-kpi-val {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 800;
+    display: block;
+    line-height: 1.2;
+}
+
+.spec-kpi-label {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+    display: block;
+}
+
+.urgency-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.urgency-tag.urgency-critical {
+    background: rgba(239,68,68,0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.4);
+    animation: groundCriticalFlash 1s ease-in-out infinite;
+}
+
+.urgency-tag.urgency-high {
+    background: rgba(249,115,22,0.15);
+    color: #f97316;
+    border: 1px solid rgba(249,115,22,0.3);
+}
+
+.urgency-tag.urgency-medium {
+    background: rgba(234,179,8,0.12);
+    color: #eab308;
+    border: 1px solid rgba(234,179,8,0.25);
+}
+
+.urgency-tag.urgency-low {
+    background: rgba(59,130,246,0.1);
+    color: #3b82f6;
+    border: 1px solid rgba(59,130,246,0.2);
+}
+
+.action-text {
+    font-weight: 600;
+    font-size: 0.8rem;
+}
