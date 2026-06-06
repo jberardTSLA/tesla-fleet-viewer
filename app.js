@@ -1974,18 +1974,20 @@ function renderOpsSection() {
             return dd.getTime() === day.getTime();
         });
         const dayDark = dayOrders.filter(r => isDark(r.paintName)).length;
+        const dayLight = dayOrders.filter(r => r.paintName && !isDark(r.paintName)).length;
         const dayUsed = dayOrders.filter(r => {
             const ost = (r.orderSalesType || '').toLowerCase();
             return ost.includes('used') || ost.includes('usato') || ost.includes('pre-owned');
         }).length;
-        dayBreakdown.push({ name: dayNames[d], total: dayOrders.length, dark: dayDark, used: dayUsed });
+        dayBreakdown.push({ name: dayNames[d], total: dayOrders.length, dark: dayDark, light: dayLight, used: dayUsed });
     }
 
     const dayHtml = dayBreakdown.map(d =>
         `<span style="text-align:center;min-width:50px;">` +
         `<strong style="display:block;color:${d.total > 0 ? '#06b6d4' : '#3b5a7a'};font-size:1rem;">${d.total}</strong>` +
         `<span style="font-size:0.55rem;color:#5a7a9e;">${d.name}</span>` +
-        `${d.dark > 0 ? '<br><span style="font-size:0.55rem;color:#888;">'+d.dark+' sc</span>' : ''}` +
+        `${d.dark > 0 ? '<br><span style="font-size:0.55rem;background:#555;color:#fff;padding:0 4px;border-radius:3px;">'+d.dark+'</span>' : ''}` +
+        `${d.light > 0 ? ' <span style="font-size:0.55rem;background:#e5e5e5;color:#333;padding:0 4px;border-radius:3px;">'+d.light+'</span>' : ''}` +
         `${d.used > 0 ? '<br><span style="font-size:0.55rem;color:#f97316;">'+d.used+' us</span>' : ''}` +
         `</span>`
     ).join('');
