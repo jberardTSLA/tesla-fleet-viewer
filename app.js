@@ -1955,8 +1955,11 @@ function renderOpsSection() {
     }).length;
     const newCount = weekDeliveries.length - usedCount;
 
-    const darkColors = ['black','nero','midnight','cherry','blue','blu','dark','scuro','obsidian','deep blue'];
-    const isDark = (p) => { const low = (p||'').toLowerCase(); return darkColors.some(c => low.includes(c)); };
+    // Tesla official paint classification
+    // SCURI (difficili): Obsidian Black, Midnight Cherry Red, Deep Blue, Stealth Grey, Midnight Silver
+    // CHIARI (facili): Pearl White, Quicksilver, Silver, Glacier Blue
+    const darkPatterns = ['black','nero','obsidian','pbsb','midnight cherry','cherry','pmsr','deep blue','ppsb','blu','blue','stealth','pmng','midnight silver','pmss','ultra red','ppmr','dark','scuro'];
+    const isDark = (p) => { const low = (p||'').toLowerCase(); return darkPatterns.some(c => low.includes(c)); };
     const darkCount = weekDeliveries.filter(r => isDark(r.paintName)).length;
     const lightCount = weekDeliveries.filter(r => r.paintName && !isDark(r.paintName)).length;
     const unknownColor = weekDeliveries.filter(r => !r.paintName).length;
