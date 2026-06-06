@@ -2469,3 +2469,118 @@ showUpload = function() {
     if (liveStatus) { liveStatus.textContent = ''; liveStatus.className = 'boot-live-status'; }
     _originalShowUpload();
 };
+
+/* ============================================================
+   BOOKMARKLET RECEIVER — postMessage Bridge
+   I bookmarklet ZipLabs/DRO inviano i dati via postMessage.
+   Qui li riceviamo e li iniettiamo nella pipeline esistente.
+   ============================================================ */
+
+const FLEET_VIEWER_ORIGIN = '*'; // Accept from any origin (bookmarklet runs on ZipLabs/DRO domain)
+const FLEET_MSG_TYPE = 'TESLA_FLEET_VIEWER_DATA';
+
+window.addEventListener('message', function(event) {
+    // Validate message structure
+    if (!event.data || event.data.type !== FLEET_MSG_TYPE) return;
+
+    const payload = event.data;
+    console.log('[BOOKMARKLET] Received data:', payload.source, payload.slot, payload.rows?.length, 'rows');
+
+    try {
+        const rows = payload.rows;
+        if (!rows || !Array.isArray(rows) || rows.length === 0) {
+            console.warn('[BOOKMARKLET] Empty or invalid data received');
+            return;
+        }
+
+        if (payload.slot === 1 || payload.slot === 'orders') {
+            // ── File 1: Ordini (ZipLabs) ──
+            allHeaders = Object.keys(rows[0]);
+            rawData = rows;
+            const autoMapped = tryAutoMap(allHeaders);
+            if (autoMapped) {
+                columnMap = autoMapped;
+            } else {
+                console.warn('[BOOKMARKLET] Auto-map failed, showing mapping UI');
+                showColumnMapping();
+                return;
+            }
+            bootFile1Loaded = true;
+
+            // Update boot screen UI
+            const slotEl = document.getElementById('bootSlot1');
+            if (slotEl) {
+                slotEl.classList.add('loaded');
+                document.getElementById('bootDesc1').textContent = rows.length + ' ordini da ' + (payload.source || 'bookmarklet');
+                document.getElementById('bootAction1').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 10l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>RICEVUTO</span>';
+                if (window.gsapFileLoaded) gsapFileLoaded(slotEl);
+            }
+            updateBootButton();
+
+            // If dashboard is already visible, re-process
+            if (document.getElementById('dashboard').style.display !== 'none') {
+                processAndRender();
+                if (bootFile2Loaded && window._bootFile2Data) {
+                    handleFile2Merge(window._bootFile2Data);
+                }
+                _showUpdateNotification();
+            }
+
+        } else if (payload.slot === 2 || payload.slot === 'enterprise') {
+            // ── File 2: Enterprise (DRO) ──
+            window._bootFile2Data = rows;
+            bootFile2Loaded = true;
+            OPTIMUS_DATA[1].locked = false;
+            const lockBadge = document.getElementById('charLock1');
+            if (lockBadge) lockBadge.style.display = 'none';
+
+            // Update boot screen UI
+            const slotEl = document.getElementById('bootSlot2');
+            if (slotEl) {
+                slotEl.classList.add('loaded');
+                document.getElementById('bootDesc2').textContent = rows.length + ' righe da ' + (payload.source || 'bookmarklet');
+                document.getElementById('bootAction2').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 10l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>RICEVUTO</span>';
+                if (window.gsapFileLoaded) gsapFileLoaded(slotEl);
+            }
+
+            // If dashboard visible, merge immediately
+            if (document.getElementById('dashboard').style.display !== 'none' && bootFile1Loaded) {
+                handleFile2Merge(rows);
+                _showUpdateNotification();
+            }
+        }
+
+        // Flash the boot screen if we're still on it
+        _flashBookmarkletReceived(payload.source || 'Bookmarklet', rows.length, payload.slot);
+
+    } catch (err) {
+        console.error('[BOOKMARKLET] Error processing received data:', err);
+    }
+});
+
+function _flashBookmarkletReceived(source, count, slot) {
+    // Show a brief confirmation toast
+    let toast = document.getElementById('bookmarkletToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'bookmarkletToast';
+        toast.className = 'bookmarklet-toast';
+        document.body.appendChild(toast);
+    }
+    const label = slot === 1 || slot === 'orders' ? 'Ordini' : 'Enterprise';
+    toast.innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="#06b6d4" stroke-width="1.5" fill="rgba(6,182,212,0.1)"/><path d="M6 9l2 2 4-4" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span><strong>${label}</strong> — ${count} righe ricevute da ${escapeHtml(source)}</span>`;
+    toast.style.display = 'flex';
+    setTimeout(() => { if (toast) toast.style.display = 'none'; }, 4000);
+}
+
+// ─── BroadcastChannel listener (cross-tab without opener) ───
+try {
+    const bc = new BroadcastChannel('tesla_fleet_viewer');
+    bc.onmessage = function(event) {
+        if (event.data && event.data.type === FLEET_MSG_TYPE) {
+            // Re-dispatch as a window message for the main handler
+            window.postMessage(event.data, '*');
+        }
+    };
+} catch(e) { /* BroadcastChannel not supported — postMessage only */ }
