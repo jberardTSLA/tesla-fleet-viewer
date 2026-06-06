@@ -68,57 +68,8 @@
             <div class="boot-hint">
                 <span class="boot-dot"></span>
                 Export da ZipLabs Dashboard 17481 — Force Refresh prima dell'export
-                </div>
-
-                <!-- Need Payment -->
-                <div class="table-card table-card-payment" id="paymentSection" style="display:none;margin-top:16px;">
-                    <div class="table-header">
-                        <h3>
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="vertical-align:middle;margin-right:8px;"><circle cx="10" cy="10" r="8" stroke="#f97316" stroke-width="1.5" fill="rgba(249,115,22,0.1)"/><path d="M10 6v4M10 13h.01" stroke="#f97316" stroke-width="2" stroke-linecap="round"/></svg>
-                            Da Far Pagare
-                            <span class="ready-subtitle">A terra in hub ma pagamento INCOMPLETE — sollecitare</span>
-                        </h3>
-                        <div class="table-actions">
-                            <span class="record-count payment-count" id="paymentCount">0</span>
-                            <button class="btn-export" style="background:rgba(249,115,22,0.1);color:#f97316;border-color:rgba(249,115,22,0.2);" onclick="exportPaymentCSV()">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2 L8 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 8 L8 12 L12 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 14 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                                Esporta CSV
-                            </button>
-                        </div>
-                    </div>
-                    <div class="table-wrapper">
-                        <table id="paymentTable" class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>VIN</th>
-                                    <th>RN</th>
-                                    <th>Hub</th>
-                                    <th>Modello</th>
-                                    <th>A Terra</th>
-                                    <th>Pagamento</th>
-                                    <th>Specialist</th>
-                                    <th>B2B/B2C</th>
-                                    <th>Posizione</th>
-                                </tr>
-                            </thead>
-                            <tbody id="paymentBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="ready-pagination">
-                        <div class="page-size-select">
-                            <label>Mostra</label>
-                            <select id="paymentPageSize" onchange="changePaymentPageSize()">
-                                <option value="15">15</option>
-                                <option value="30">30</option>
-                                <option value="50" selected>50</option>
-                                <option value="100">100</option>
-                                <option value="9999">Tutti</option>
-                            </select>
-                        </div>
-                        <div class="pagination" id="paymentPagination"></div>
-                    </div>
-                </div>
             </div>
+        </div>
     </div>
 
     <!-- OPTIMUS SELECTION SCREEN (CoD Style) -->
@@ -736,6 +687,55 @@
                             <tbody id="readyRedBody"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- Need Payment — Pagamento non completo -->
+            <div class="table-card table-card-payment" id="paymentSection" style="display:none;">
+                <div class="table-header">
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="vertical-align:middle;margin-right:8px;"><circle cx="10" cy="10" r="8" stroke="#f97316" stroke-width="1.5" fill="rgba(249,115,22,0.1)"/><path d="M10 6v4M10 13h.01" stroke="#f97316" stroke-width="2" stroke-linecap="round"/></svg>
+                        Da Far Pagare
+                        <span class="ready-subtitle">A terra in hub ma pagamento NON completo — sollecitare</span>
+                    </h3>
+                    <div class="table-actions">
+                        <span class="record-count payment-count" id="paymentCount">0</span>
+                        <button class="btn-export" style="background:rgba(249,115,22,0.1);color:#f97316;border-color:rgba(249,115,22,0.2);" onclick="exportPaymentCSV()">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2 L8 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 8 L8 12 L12 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 14 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                            Esporta CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="paymentTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>VIN</th>
+                                <th>RN</th>
+                                <th>Hub</th>
+                                <th>Modello</th>
+                                <th>A Terra</th>
+                                <th>Pagamento</th>
+                                <th>Specialist</th>
+                                <th>B2B/B2C</th>
+                                <th>Posizione</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentBody"></tbody>
+                    </table>
+                </div>
+                <div class="ready-pagination">
+                    <div class="page-size-select">
+                        <label>Mostra</label>
+                        <select id="paymentPageSize" onchange="changePaymentPageSize()">
+                            <option value="15">15</option>
+                            <option value="30">30</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="9999">Tutti</option>
+                        </select>
+                    </div>
+                    <div class="pagination" id="paymentPagination"></div>
                 </div>
             </div>
 
