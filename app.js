@@ -827,7 +827,7 @@ function processAndRender() {
             specialNeedsTag,
             financialSolutionStatus,
             smpLink,
-            dwell: _calcDwell(arrivalDate, deliveryDateObj, matchDate, scArrivalDate, fleetReleaseDate, actualDeliveryDate),
+            dwell: _calcDwell(dateObj, deliveryDateObj, matchDate, scArrivalDate, fleetReleaseDate, actualDeliveryDate),
             daysUntil,
             urgency,
         };
