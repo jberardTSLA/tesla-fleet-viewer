@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla Fleet Viewer - Mappa Posizioni</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a1628;
+            color: #e8edf5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            background: rgba(15,31,61,0.95);
+            border-bottom: 1px solid rgba(59,130,246,0.2);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            flex-shrink: 0;
+        }
+        .map-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .map-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+        .map-subtitle {
+            font-size: 0.7rem;
+            color: #5a7a9e;
+            letter-spacing: 1px;
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(59,130,246,0.1);
+            color: #3b82f6;
+            border: 1px solid rgba(59,130,246,0.25);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .back-btn:hover {
+            background: rgba(59,130,246,0.2);
+            border-color: rgba(59,130,246,0.4);
+        }
+
+        /* ── Stats bar ── */
+        .map-stats {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .map-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: rgba(10,22,40,0.6);
+            border: 1px solid rgba(59,130,246,0.12);
+            border-radius: 12px;
+            font-size: 0.75rem;
+            color: #8ba3c7;
+        }
+        .map-stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            color: #06b6d4;
+            font-size: 0.85rem;
+        }
+
+        /* ── Legend ── */
+        .map-legend {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            z-index: 1000;
+            background: rgba(15,31,61,0.92);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 12px;
+            padding: 14px 18px;
+            backdrop-filter: blur(10px);
+            font-size: 0.75rem;
+        }
+        .map-legend h4 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            color: #5a7a9e;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            color: #8ba3c7;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── Map container ── */
+        #map {
+            flex: 1;
+            background: #0a1628;
+        }
+
+        /* ── Leaflet custom styling ── */
+        .leaflet-container { background: #0d1b2a; }
+        .leaflet-popup-content-wrapper {
+            background: rgba(15,31,61,0.95);
+            color: #e8edf5;
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(59,130,246,0.1);
+            backdrop-filter: blur(10px);
+        }
+        .leaflet-popup-content { margin: 14px 16px; font-family: 'Inter', sans-serif; }
+        .leaflet-popup-tip { background: rgba(15,31,61,0.95); border-top: 1px solid rgba(59,130,246,0.3); }
+        .leaflet-popup-close-button { color: #5a7a9e !important; }
+        .leaflet-control-zoom a {
+            background: rgba(15,31,61,0.9) !important;
+            color: #3b82f6 !important;
+            border-color: rgba(59,130,246,0.2) !important;
+        }
+        .leaflet-control-zoom a:hover {
+            background: rgba(59,130,246,0.2) !important;
+        }
+
+        /* ── Custom markers ── */
+        .hub-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .hub-marker:hover { transform: scale(1.2); }
+
+        /* ── Popup content ── */
+        .popup-hub-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #06b6d4;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: 0.8rem;
+            border-bottom: 1px solid rgba(59,130,246,0.06);
+        }
+        .popup-label { color: #5a7a9e; }
+        .popup-value { color: #e8edf5; font-weight: 600; }
+        .popup-model-list {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(59,130,246,0.12);
+        }
+        .popup-model {
+            display: inline-block;
+            padding: 2px 8px;
+            margin: 2px;
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 6px;
+            font-size: 0.7rem;
+            color: #60a5fa;
+        }
+        .popup-badge-ready {
+            display: inline-block; padding: 2px 8px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 700;
+            background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3);
+        }
+        .popup-badge-transit {
+            display: inline-block; padding: 2px 8px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 700;
+            background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid rgba(234,179,8,0.3);
+        }
+        .popup-badge-ch {
+            display: inline-block; padding: 2px 8px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 900; letter-spacing: 1px;
+            background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.4);
+        }
+        .popup-badge-pay {
+            display: inline-block; padding: 2px 8px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 700;
+            background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3);
+        }
+
+        /* ── No data message ── */
+        .no-data {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            text-align: center;
+            padding: 40px;
+            background: rgba(15,31,61,0.9);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 16px;
+        }
+        .no-data h2 { color: #5a7a9e; font-size: 1.2rem; margin-bottom: 12px; }
+        .no-data p { color: #3b5a7a; font-size: 0.9rem; line-height: 1.6; }
+
+        /* ── Pulse animation for markers ── */
+        @keyframes markerPulse {
+            0%, 100% { box-shadow: 0 0 4px rgba(59,130,246,0.3); }
+            50% { box-shadow: 0 0 16px rgba(59,130,246,0.6), 0 0 32px rgba(59,130,246,0.2); }
+        }
+    </style>
+</head>
+<body>
+    <div class="map-header">
+        <div class="map-header-left">
+            <a href="index.html" class="back-btn">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Dashboard
+            </a>
+            <div>
+                <div class="map-title">FLEET MAP</div>
+                <div class="map-subtitle">Posizioni veicoli in tempo reale</div>
+            </div>
+        </div>
+        <div class="map-stats">
+            <div class="map-stat"><span>Veicoli:</span> <span class="map-stat-value" id="statTotal">0</span></div>
+            <div class="map-stat"><span>Hub:</span> <span class="map-stat-value" id="statHubs">0</span></div>
+            <div class="map-stat"><span>A Terra:</span> <span class="map-stat-value" id="statGround">0</span></div>
+            <div class="map-stat"><span>In Transito:</span> <span class="map-stat-value" id="statTransit">0</span></div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="map-legend">
+        <h4>LEGENDA</h4>
+        <div class="legend-item"><div class="legend-dot" style="background:#22c55e;"></div> Hub — auto a terra</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div> Hub — in arrivo</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#eab308;"></div> Transit point</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444;"></div> Containment Hold</div>
+    </div>
+
+    <script>
+    // ═══ Hub coordinates database ═══
+    const HUB_COORDS = {
+        // Tesla Service Centers Italia
+        'milano linate sc':      [45.4408, 9.2773],
+        'milano linate':         [45.4408, 9.2773],
+        'milano':                [45.4642, 9.1900],
+        'roma magliana sc':      [41.8417, 12.4292],
+        'roma magliana':         [41.8417, 12.4292],
+        'roma salaria sc':       [41.9350, 12.5100],
+        'roma salaria':          [41.9350, 12.5100],
+        'roma':                  [41.9028, 12.4964],
+        'napoli afragola sc':    [40.9211, 14.3117],
+        'napoli afragola':       [40.9211, 14.3117],
+        'napoli':                [40.8518, 14.2681],
+        'torino moncalieri sc':  [44.9931, 7.6828],
+        'torino moncalieri':     [44.9931, 7.6828],
+        'torino':                [45.0703, 7.6869],
+        'genova sc':             [44.4056, 8.9463],
+        'genova':                [44.4056, 8.9463],
+        'bologna sc':            [44.4949, 11.3426],
+        'bologna':               [44.4949, 11.3426],
+        'firenze sc':            [43.7696, 11.2558],
+        'firenze':               [43.7696, 11.2558],
+        'padova sc':             [45.4064, 11.8768],
+        'padova':                [45.4064, 11.8768],
+        'brescia sc':            [45.5416, 10.2118],
+        'brescia':               [45.5416, 10.2118],
+        'catania sc':            [37.5079, 15.0934],
+        'catania':               [37.5079, 15.0934],
+        'palermo sc':            [38.1157, 13.3615],
+        'palermo':               [38.1157, 13.3615],
+        'bari sc':               [41.1171, 16.8719],
+        'bari':                  [41.1171, 16.8719],
+        'verona sc':             [45.4384, 10.9916],
+        'verona':                [45.4384, 10.9916],
+        'livorno hub':           [43.5485, 10.3106],
+        'livorno':               [43.5485, 10.3106],
+        'venezia terminal':      [45.4408, 12.3155],
+        'venezia':               [45.4408, 12.3155],
+        'civitavecchia':         [42.0930, 11.7968],
+        // Transit / Compound (Europa)
+        'neuss compound':        [51.2000, 6.6833],
+        'neuss':                 [51.2000, 6.6833],
+        'zeebrugge port':        [51.3333, 3.1833],
+        'zeebrugge':             [51.3333, 3.1833],
+        'tilburg hub':           [51.5556, 5.0919],
+        'tilburg':               [51.5556, 5.0919],
+        'ghent terminal':        [51.0543, 3.7174],
+        'ghent':                 [51.0543, 3.7174],
+        'gioia tauro porto':     [38.4236, 15.8986],
+        'gioia tauro':           [38.4236, 15.8986],
+        'genova porto':          [44.4100, 8.9200],
+        'livorno porto':         [43.5500, 10.3000],
+        'milano compound':       [45.4500, 9.2800],
+        'roma compound':         [41.8500, 12.4300],
+    };
+
+    function findCoords(name) {
+        if (!name) return null;
+        const low = name.toLowerCase().trim();
+        // Exact match
+        if (HUB_COORDS[low]) return HUB_COORDS[low];
+        // Partial match
+        for (const [key, coords] of Object.entries(HUB_COORDS)) {
+            if (low.includes(key) || key.includes(low)) return coords;
+        }
+        // City extraction
+        const city = low.replace(/\s*(sc|service center|hub|compound|terminal|porto)\s*/gi, '').trim();
+        if (city && HUB_COORDS[city]) return HUB_COORDS[city];
+        return null;
+    }
+
+    // ═══ Init map ═══
+    const map = L.map('map', {
+        center: [42.5, 12.5],
+        zoom: 6,
+        zoomControl: true,
+    });
+
+    // Dark tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    // ═══ Load data from localStorage ═══
+    const raw = localStorage.getItem('teslaFleetData');
+    if (!raw) {
+        document.getElementById('map').insertAdjacentHTML('afterend',
+            '<div class="no-data"><h2>Nessun dato caricato</h2><p>Apri la <a href="index.html" style="color:#06b6d4;">Dashboard</a>, carica i file Excel,<br>poi torna qui per vedere la mappa.</p></div>');
+    } else {
+        const data = JSON.parse(raw);
+        buildMap(data);
+    }
+
+    function buildMap(orders) {
+        // Group by location (hub)
+        const hubGroups = {};
+        // Group by lastKnownLocation (position)
+        const posGroups = {};
+
+        let totalGround = 0;
+        let totalTransit = 0;
+        const today = new Date(); today.setHours(0,0,0,0);
+
+        orders.forEach(order => {
+            const hub = order.location || 'N/A';
+            if (!hubGroups[hub]) hubGroups[hub] = { orders: [], ground: 0, transit: 0, ch: 0, models: {} };
+            hubGroups[hub].orders.push(order);
+
+            const model = order.model || 'N/A';
+            hubGroups[hub].models[model] = (hubGroups[hub].models[model] || 0) + 1;
+
+            // Check if at hub
+            const pos = (order.lastKnownLocation || '').toLowerCase().trim();
+            const hubLow = hub.toLowerCase().trim();
+            const isGround = pos && (pos === hubLow || pos.includes(hubLow) || hubLow.includes(pos) || pos === 'at sc');
+
+            if (isGround || (!pos && order.dateStr !== 'N/A')) {
+                // Check date-based ground
+                const arrDate = order.date ? new Date(order.date) : null;
+                if (isGround || (arrDate && arrDate <= today)) {
+                    hubGroups[hub].ground++;
+                    totalGround++;
+                } else {
+                    hubGroups[hub].transit++;
+                    totalTransit++;
+                }
+            } else {
+                hubGroups[hub].transit++;
+                totalTransit++;
+            }
+
+            if (order.isContainmentHold) hubGroups[hub].ch++;
+
+            // Track unique positions for transit markers
+            if (pos && !isGround && pos !== 'in transit') {
+                if (!posGroups[pos]) posGroups[pos] = [];
+                posGroups[pos].push(order);
+            }
+        });
+
+        // Stats
+        document.getElementById('statTotal').textContent = orders.length;
+        document.getElementById('statHubs').textContent = Object.keys(hubGroups).length;
+        document.getElementById('statGround').textContent = totalGround;
+        document.getElementById('statTransit').textContent = totalTransit;
+
+        // ── Hub markers ──
+        Object.entries(hubGroups).forEach(([hub, data]) => {
+            const coords = findCoords(hub);
+            if (!coords) return;
+
+            const total = data.orders.length;
+            const size = Math.max(28, Math.min(56, 20 + total * 0.8));
+            const hasCH = data.ch > 0;
+            const color = hasCH ? '#ef4444' : (data.ground > 0 ? '#22c55e' : '#3b82f6');
+
+            const icon = L.divIcon({
+                html: `<div class="hub-marker" style="width:${size}px;height:${size}px;background:${color};font-size:${size > 40 ? 14 : 11}px;animation:markerPulse 2.5s ease-in-out infinite;box-shadow:0 0 12px ${color}80;">${total}</div>`,
+                className: '',
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2],
+            });
+
+            const modelHtml = Object.entries(data.models)
+                .sort((a,b) => b[1]-a[1])
+                .map(([m,q]) => `<span class="popup-model">${m}: ${q}</span>`)
+                .join('');
+
+            const popup = `
+                <div class="popup-hub-name">${hub}</div>
+                <div class="popup-row"><span class="popup-label">Totale veicoli</span><span class="popup-value">${total}</span></div>
+                <div class="popup-row"><span class="popup-label">A terra in hub</span><span class="popup-value">${data.ground}</span></div>
+                <div class="popup-row"><span class="popup-label">In arrivo</span><span class="popup-value">${data.transit}</span></div>
+                ${data.ch > 0 ? `<div class="popup-row"><span class="popup-label">Containment Hold</span><span class="popup-badge-ch">${data.ch} CH</span></div>` : ''}
+                <div class="popup-model-list">${modelHtml}</div>
+            `;
+
+            L.marker(coords, { icon }).addTo(map).bindPopup(popup, { maxWidth: 300 });
+        });
+
+        // ── Transit position markers ──
+        Object.entries(posGroups).forEach(([pos, vehicles]) => {
+            const coords = findCoords(pos);
+            if (!coords) return;
+
+            const size = Math.max(22, Math.min(40, 18 + vehicles.length * 1.2));
+            const icon = L.divIcon({
+                html: `<div class="hub-marker" style="width:${size}px;height:${size}px;background:#eab308;font-size:${size > 30 ? 12 : 10}px;opacity:0.85;">${vehicles.length}</div>`,
+                className: '',
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2],
+            });
+
+            const popup = `
+                <div class="popup-hub-name" style="color:#eab308;">${pos.toUpperCase()}</div>
+                <div class="popup-row"><span class="popup-label">Veicoli in transito</span><span class="popup-badge-transit">${vehicles.length}</span></div>
+            `;
+
+            L.marker(coords, { icon }).addTo(map).bindPopup(popup, { maxWidth: 250 });
+        });
+
+        // Fit bounds to all markers
+        const allCoords = [];
+        Object.keys(hubGroups).forEach(hub => { const c = findCoords(hub); if (c) allCoords.push(c); });
+        Object.keys(posGroups).forEach(pos => { const c = findCoords(pos); if (c) allCoords.push(c); });
+        if (allCoords.length > 1) {
+            map.fitBounds(allCoords, { padding: [40, 40] });
+        }
+    }
+    </script>
+</body>
+</html>

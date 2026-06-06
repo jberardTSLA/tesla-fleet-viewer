@@ -871,6 +871,20 @@ function applyFilters() {
     renderPostponeTable();
     renderArrivalsTable();
     renderLocationCards();
+
+    // Save to localStorage for map page
+    try {
+        const mapData = rawData.map(r => ({
+            orderId: r.orderId, location: r.location, model: r.model,
+            status: r.status, date: r.date, dateStr: r.dateStr,
+            lastKnownLocation: r.lastKnownLocation || '',
+            isContainmentHold: r.isContainmentHold || false,
+            finalPaymentStatus: r.finalPaymentStatus || '',
+            orderChannel: r.orderChannel || '',
+            reservationNumber: r.reservationNumber || '',
+        }));
+        localStorage.setItem('teslaFleetData', JSON.stringify(mapData));
+    } catch(e) { console.warn('localStorage save failed:', e); }
 }
 
 function resetFilters() {
