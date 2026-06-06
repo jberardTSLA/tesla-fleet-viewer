@@ -1074,9 +1074,9 @@ function getAlerts(r) {
         }
     }
 
-    // Dwell > 5 days
-    if (r.dwell && r.dwell > 5) {
-        alerts.push({ type: 'high_dwell', text: 'Dwell ' + r.dwell + 'gg (>5)' });
+    // Dwell > 6 days (soglia interna 6gg)
+    if (r.dwell && r.dwell > 6) {
+        alerts.push({ type: 'high_dwell', text: 'Dwell ' + r.dwell + 'gg (>6)' });
     }
 
     // Pending cancellation
@@ -1724,16 +1724,32 @@ function renderSpecialistSection() {
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#3b82f6;">${actions.length}</span><span class="spec-kpi-label">Azioni da fare</span></div>
     `;
 
-    // Render table
+    // Render table (paginated)
+    window._specActions = actions;
+    _renderSpecPage();
+}
+
+let specPage = 1;
+let specPageSize = 20;
+
+function _renderSpecPage() {
+    const actions = window._specActions || [];
+    const urgencyLabels = { critical: 'CRITICO', high: 'ALTA', medium: 'MEDIA', low: 'INFO' };
     const body = document.getElementById('specialistBody');
+
     if (actions.length === 0) {
         body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#5a7a9e;padding:20px;">Nessuna azione urgente — tutto sotto controllo</td></tr>';
+        const pag = document.getElementById('specPagination');
+        if (pag) pag.innerHTML = '';
         return;
     }
 
-    const urgencyLabels = { critical: 'CRITICO', high: 'ALTA', medium: 'MEDIA', low: 'INFO' };
+    const totalPages = Math.ceil(actions.length / specPageSize);
+    if (specPage > totalPages) specPage = 1;
+    const start = (specPage - 1) * specPageSize;
+    const pageData = actions.slice(start, start + specPageSize);
 
-    body.innerHTML = actions.map(a => {
+    body.innerHTML = pageData.map(a => {
         const r = a.order;
         const rnCell = r.reservationNumber
             ? `<td><a href="https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=${encodeURIComponent(r.reservationNumber)}" target="_blank" class="wdo-link">${escapeHtml(r.reservationNumber)}</a></td>`
@@ -1749,7 +1765,12 @@ function renderSpecialistSection() {
             <td style="font-size:0.75rem;color:#8ba3c7;max-width:250px;">${escapeHtml(a.detail)}</td>
         </tr>`;
     }).join('');
+
+    renderTablePagination('specPagination', specPage, totalPages, 'goSpecPage');
 }
+
+function goSpecPage(p) { specPage = p; _renderSpecPage(); }
+function changeSpecPageSize() { specPageSize = parseInt(document.getElementById('specPageSize').value); specPage = 1; _renderSpecPage(); }
 
 function exportSpecialistCSV() {
     const table = document.getElementById('specialistTable');

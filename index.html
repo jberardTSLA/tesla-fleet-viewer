@@ -499,6 +499,18 @@
                         <tbody id="specialistBody"></tbody>
                     </table>
                 </div>
+                <div class="ready-pagination">
+                    <div class="page-size-select">
+                        <label>Mostra</label>
+                        <select id="specPageSize" onchange="changeSpecPageSize()">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="9999">Tutti</option>
+                        </select>
+                    </div>
+                    <div class="pagination" id="specPagination"></div>
+                </div>
             </div>
 
             <!-- OPS MODE: Location Operations Dashboard -->
