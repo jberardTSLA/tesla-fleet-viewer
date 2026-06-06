@@ -869,7 +869,27 @@
                 </div>
             </div>
         </div>
-        <div id="fleetMap" style="flex:1;"></div>
+        <div id="fleetMap" style="flex:1;min-height:0;"></div>
+        <!-- VIN Panel: auto non a terra -->
+        <div class="map-vin-panel" id="mapVinPanel">
+            <div class="map-vin-header" onclick="toggleVinPanel()">
+                <span class="map-vin-title">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M4 5h6M4 7h4M4 9h5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+                    TELAI NON A TERRA
+                    <span class="map-vin-count" id="mapVinCount">0</span>
+                </span>
+                <div class="map-vin-actions">
+                    <button class="map-copy-btn" onclick="event.stopPropagation(); copyVinList()" title="Copia tutti i VIN">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M10 4V2.5A1.5 1.5 0 008.5 1H2.5A1.5 1.5 0 001 2.5v6A1.5 1.5 0 002.5 10H4" stroke="currentColor" stroke-width="1.2"/></svg>
+                        Copia VIN
+                    </button>
+                    <span class="map-vin-toggle" id="mapVinToggle">&#9650;</span>
+                </div>
+            </div>
+            <div class="map-vin-body" id="mapVinBody">
+                <div class="map-vin-list" id="mapVinList"></div>
+            </div>
+        </div>
         <div class="map-legend-box">
             <div class="map-legend-item"><span class="ml-dot" style="background:#22c55e;"></span> A terra in hub</div>
             <div class="map-legend-item"><span class="ml-dot" style="background:#3b82f6;"></span> In arrivo</div>

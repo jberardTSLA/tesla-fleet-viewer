@@ -2326,4 +2326,73 @@ function updateMapMarkers() {
     // Fit bounds
     if (allCoords.length > 1) _fleetMap.fitBounds(allCoords, { padding: [30, 30] });
     else if (allCoords.length === 1) _fleetMap.setView(allCoords[0], 8);
+
+    // Update VIN panel with non-a-terra vehicles
+    _updateVinPanel(orders);
+}
+
+// ─── VIN Panel: auto non a terra ────────────────────────────
+let _vinPanelCollapsed = false;
+let _currentNotAtHub = [];
+
+function _updateVinPanel(orders) {
+    const notAtHub = orders.filter(o => !o._atHub).sort((a, b) => {
+        // Sort by position then by hub
+        const posA = (a.lastKnownLocation || 'zzz').toLowerCase();
+        const posB = (b.lastKnownLocation || 'zzz').toLowerCase();
+        if (posA !== posB) return posA.localeCompare(posB);
+        return (a.location || '').localeCompare(b.location || '');
+    });
+
+    _currentNotAtHub = notAtHub;
+    document.getElementById('mapVinCount').textContent = notAtHub.length;
+
+    const list = document.getElementById('mapVinList');
+    if (notAtHub.length === 0) {
+        list.innerHTML = '<div style="padding:10px;color:#5a7a9e;font-size:0.8rem;grid-column:1/-1;">Tutte le auto sono a terra nei rispettivi hub</div>';
+        return;
+    }
+
+    list.innerHTML = notAtHub.map(o => {
+        const pos = o.lastKnownLocation || 'Posizione sconosciuta';
+        const hub = o.location || '';
+        return `<div class="map-vin-row">
+            <span class="vin-code">${escapeHtml(o.orderId)}</span>
+            <span class="vin-pos">${escapeHtml(pos)}</span>
+            <span class="vin-hub">&rarr; ${escapeHtml(hub)}</span>
+        </div>`;
+    }).join('');
+}
+
+function toggleVinPanel() {
+    _vinPanelCollapsed = !_vinPanelCollapsed;
+    const body = document.getElementById('mapVinBody');
+    const toggle = document.getElementById('mapVinToggle');
+    body.classList.toggle('collapsed', _vinPanelCollapsed);
+    toggle.classList.toggle('collapsed', _vinPanelCollapsed);
+    // Resize map after panel toggle
+    setTimeout(() => { if (_fleetMap) _fleetMap.invalidateSize(); }, 350);
+}
+
+function copyVinList() {
+    if (_currentNotAtHub.length === 0) return;
+    const vins = _currentNotAtHub.map(o => o.orderId).join('\n');
+    navigator.clipboard.writeText(vins).then(() => {
+        const btn = document.querySelector('.map-copy-btn');
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Copiati!';
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M10 4V2.5A1.5 1.5 0 008.5 1H2.5A1.5 1.5 0 001 2.5v6A1.5 1.5 0 002.5 10H4" stroke="currentColor" stroke-width="1.2"/></svg> Copia VIN';
+        }, 2000);
+    }).catch(() => {
+        // Fallback for older browsers
+        const ta = document.createElement('textarea');
+        ta.value = vins;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        alert('VIN copiati: ' + _currentNotAtHub.length);
+    });
 }
