@@ -157,7 +157,7 @@
     const tl = gsap.timeline({ delay: 0.3 });
 
     // Logo entrance
-    tl.from('.boot-logo img', {
+    tl.from('.tesla-wordmark-boot', {
         scale: 0,
         rotation: 180,
         opacity: 0,
