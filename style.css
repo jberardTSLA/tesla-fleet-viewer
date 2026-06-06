@@ -1937,13 +1937,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .arena-image {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-image: url('img/optimus.jpg');
+    background-image: url('img/optimus.png');
     background-size: contain;
     background-position: center center;
     background-repeat: no-repeat;
-    mix-blend-mode: screen;
-    filter: invert(1);
-    opacity: 0.9;
+    opacity: 0.95;
     pointer-events: none;
     z-index: 1;
 }
