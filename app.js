@@ -1488,24 +1488,23 @@ function renderPivotTable() {
     });
 
     // Render header
-    head.innerHTML = '<tr><th>Location / Hub</th>' +
+    head.innerHTML = '<tr><th>Location / Hub</th><th>Prossimo Arrivo</th><th>Arrivi 7gg</th>' +
         models.map(m => '<th>' + escapeHtml(m) + '</th>').join('') +
-        '<th>TOTALE</th><th>Prossimo Arrivo</th><th>Arrivi 7gg</th></tr>';
+        '<th>TOTALE</th></tr>';
 
     // Render rows
     body.innerHTML = locations.map(loc => {
         const na = nextArrival[loc] ? nextArrival[loc].toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) : '—';
         const wa = weekArrivals[loc] || 0;
         return '<tr><td><strong>' + escapeHtml(loc) + '</strong></td>' +
-            models.map(mod => '<td>' + (matrix[loc][mod] || 0).toLocaleString('it-IT') + '</td>').join('') +
-            '<td><strong>' + locationTotals[loc].toLocaleString('it-IT') + '</strong></td>' +
             '<td style="color:#06b6d4;">' + na + '</td>' +
-            '<td style="color:' + (wa > 0 ? '#eab308' : '#5a7a9e') + ';font-weight:700;">' + wa + '</td></tr>';
+            '<td style="color:' + (wa > 0 ? '#eab308' : '#5a7a9e') + ';font-weight:700;">' + wa + '</td>' +
+            models.map(mod => '<td>' + (matrix[loc][mod] || 0).toLocaleString('it-IT') + '</td>').join('') +
+            '<td><strong>' + locationTotals[loc].toLocaleString('it-IT') + '</strong></td></tr>';
     }).join('') +
-    // Total row
-    '<tr class="pivot-total"><td><strong>TOTALE</strong></td>' +
+    '<tr class="pivot-total"><td><strong>TOTALE</strong></td><td></td><td></td>' +
     models.map(mod => '<td>' + modelTotals[mod].toLocaleString('it-IT') + '</td>').join('') +
-    '<td>' + grandTotal.toLocaleString('it-IT') + '</td><td></td><td></td></tr>';
+    '<td>' + grandTotal.toLocaleString('it-IT') + '</td></tr>';
 }
 
 // ─── Postpone Table ─────────────────────────────────────────
@@ -1962,20 +1961,50 @@ function renderOpsSection() {
     const lightCount = weekDeliveries.filter(r => r.paintName && !isDark(r.paintName)).length;
     const unknownColor = weekDeliveries.filter(r => !r.paintName).length;
 
-    // Monday morning deliveries (first day of next week)
-    const mondayDeliveries = weekDeliveries.filter(r => {
-        const dd = new Date(r.deliveryDate); dd.setHours(0,0,0,0);
-        return dd.getTime() === nextMonday.getTime();
-    }).length;
+    // Breakdown giornaliero Lun→Sab
+    const dayNames = ['Lun','Mar','Mer','Gio','Ven','Sab'];
+    const dayBreakdown = [];
+    for (let d = 0; d < 6; d++) {
+        const day = new Date(nextMonday);
+        day.setDate(nextMonday.getDate() + d);
+        day.setHours(0,0,0,0);
+        const dayEnd = new Date(day); dayEnd.setHours(23,59,59);
+        const dayOrders = weekDeliveries.filter(r => {
+            const dd = new Date(r.deliveryDate); dd.setHours(0,0,0,0);
+            return dd.getTime() === day.getTime();
+        });
+        const dayDark = dayOrders.filter(r => isDark(r.paintName)).length;
+        const dayUsed = dayOrders.filter(r => {
+            const ost = (r.orderSalesType || '').toLowerCase();
+            return ost.includes('used') || ost.includes('usato') || ost.includes('pre-owned');
+        }).length;
+        dayBreakdown.push({ name: dayNames[d], total: dayOrders.length, dark: dayDark, used: dayUsed });
+    }
+
+    const dayHtml = dayBreakdown.map(d =>
+        `<span style="text-align:center;min-width:50px;">` +
+        `<strong style="display:block;color:${d.total > 0 ? '#06b6d4' : '#3b5a7a'};font-size:1rem;">${d.total}</strong>` +
+        `<span style="font-size:0.55rem;color:#5a7a9e;">${d.name}</span>` +
+        `${d.dark > 0 ? '<br><span style="font-size:0.55rem;color:#888;">'+d.dark+' sc</span>' : ''}` +
+        `${d.used > 0 ? '<br><span style="font-size:0.55rem;color:#f97316;">'+d.used+' us</span>' : ''}` +
+        `</span>`
+    ).join('');
 
     document.getElementById('opsKpiGrid').innerHTML += `
         <div class="ops-kpi" style="grid-column: 1/-1; background:rgba(168,85,247,0.05); border-color:rgba(168,85,247,0.2);">
-            <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;width:100%;">
-                <span class="ops-kpi-label" style="font-size:0.7rem;color:#a855f7;letter-spacing:2px;flex-shrink:0;">PREP LAVAGGIO ${weekLabel}</span>
-                <span class="ops-kpi-label" style="margin:0;"><strong style="color:#06b6d4;font-size:1.1rem;">${weekDeliveries.length}</strong> consegne</span>
-                <span class="ops-kpi-label" style="margin:0;"><strong style="color:#f97316;">${usedCount}</strong> usate <strong style="color:#22c55e;">${newCount}</strong> nuove</span>
-                <span class="ops-kpi-label" style="margin:0;"><strong style="color:#1a1a1a;background:#ddd;padding:1px 6px;border-radius:4px;">${darkCount}</strong> scure <strong style="color:#666;background:#f5f5f5;padding:1px 6px;border-radius:4px;">${lightCount}</strong> chiare${unknownColor > 0 ? ' <strong style="color:#5a7a9e;">'+unknownColor+'</strong> n/d' : ''}</span>
-                ${mondayDeliveries > 0 ? '<span class="ops-kpi-label" style="margin:0;color:#ef4444;font-weight:700;"><strong style="font-size:1rem;">⚠ '+mondayDeliveries+'</strong> lunedì mattina!</span>' : ''}
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;width:100%;">
+                <div style="flex-shrink:0;">
+                    <span class="ops-kpi-label" style="font-size:0.7rem;color:#a855f7;letter-spacing:2px;">PREP LAVAGGIO ${weekLabel}</span>
+                    <div style="margin-top:4px;">
+                        <span class="ops-kpi-label" style="margin:0;"><strong style="color:#06b6d4;font-size:1.1rem;">${weekDeliveries.length}</strong> totali</span>
+                        <span class="ops-kpi-label" style="margin:0;margin-left:10px;"><strong style="color:#f97316;">${usedCount}</strong> usate</span>
+                        <span class="ops-kpi-label" style="margin:0;margin-left:10px;"><strong style="color:#1a1a1a;background:#ddd;padding:1px 6px;border-radius:4px;">${darkCount}</strong> scure</span>
+                        <span class="ops-kpi-label" style="margin:0;margin-left:4px;"><strong style="color:#666;background:#f5f5f5;padding:1px 6px;border-radius:4px;">${lightCount}</strong> chiare</span>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+                    ${dayHtml}
+                </div>
             </div>
         </div>
     `;
