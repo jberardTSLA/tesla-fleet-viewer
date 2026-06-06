@@ -1295,8 +1295,11 @@ function renderReadySection() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // "A terra in hub" = arrival date is today or in the past
-    // "Payment Complete" = finalPaymentStatus contains "complete" (case insensitive)
+    // "A terra in hub" = la Posizione (LastKnownVehicleLocation) combacia con l'Hub assegnato
+    // Confronto fuzzy: basta che la posizione CONTENGA il nome dell'hub o viceversa
+    // Es: location="Milano Linate SC", lastKnownLocation="Milano Linate SC" → match
+    // Es: location="Roma Magliana SC", lastKnownLocation="At SC" → match su "SC"
+    // Fallback: se non c'è lastKnownLocation, usa la data arrivo <= oggi
     const isPaymentComplete = (r) => {
         const ps = (r.finalPaymentStatus || '').trim().toUpperCase();
         if (ps.includes('INCOMPLETE') || ps.includes('NOT COMPLETE') || ps.includes('NOT PAID') || ps.includes('PENDING')) return false;
@@ -1304,6 +1307,26 @@ function renderReadySection() {
     };
 
     const isAtHub = (r) => {
+        const pos = (r.lastKnownLocation || '').trim().toLowerCase();
+        const hub = (r.location || '').trim().toLowerCase();
+
+        // Se abbiamo la posizione, verifichiamo che combaci con l'hub
+        if (pos && hub) {
+            // Match diretto
+            if (pos === hub) return true;
+            // Match parziale: la posizione contiene il nome dell'hub o viceversa
+            if (pos.includes(hub) || hub.includes(pos)) return true;
+            // Match per keyword: estraiamo la città dall'hub e cerchiamo nella posizione
+            // Es: "Milano Linate SC" → cerchiamo "milano" in posizione
+            const hubCity = hub.replace(/\s*(sc|service center|hub|compound|terminal|porto)\s*/gi, '').trim();
+            if (hubCity.length >= 3 && pos.includes(hubCity)) return true;
+            // Match "At SC" o "at service center" → generico, consideriamo a terra
+            if (pos === 'at sc' || pos.includes('at service center')) return true;
+            // Se la posizione è diversa dall'hub → NON è a terra
+            return false;
+        }
+
+        // Fallback se non c'è lastKnownLocation: usa la data arrivo
         if (!r.date) return false;
         const arrival = new Date(r.date);
         arrival.setHours(0, 0, 0, 0);
