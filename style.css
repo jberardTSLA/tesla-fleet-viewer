@@ -1927,9 +1927,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .arena {
     flex: 1;
     display: flex;
+    flex-direction: row;
     position: relative;
     z-index: 2;
     overflow: hidden;
+    min-height: 0;
 }
 
 .arena-side {
@@ -1944,6 +1946,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     position: relative;
     opacity: 0.5;
     filter: brightness(0.5);
+    overflow: hidden;
+    min-width: 0;
 }
 
 .arena-side:hover { opacity: 0.75; filter: brightness(0.7); }
@@ -1957,11 +1961,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .arena-side.active.arena-right { background: linear-gradient(225deg, rgba(59,130,246,0.06) 0%, transparent 60%); }
 
 .arena-bot {
-    width: 100%;
-    max-width: 420px;
+    width: 80%;
+    max-width: 320px;
     height: auto;
-    max-height: 70vh;
+    max-height: 55vh;
     animation: optimusBreath 3s ease-in-out infinite;
+    flex-shrink: 1;
 }
 
 .arena-label {
@@ -2006,25 +2011,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Overview button (top center) */
 .overview-btn {
-    position: absolute;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative;
     z-index: 10;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 20px;
+    padding: 6px 18px;
+    margin: 6px auto;
     background: rgba(234,179,8,0.08);
     color: #eab308;
     border: 1px solid rgba(234,179,8,0.25);
     border-radius: 20px;
     font-family: var(--font-heading);
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 2px;
     cursor: pointer;
     transition: all 0.3s;
+    flex-shrink: 0;
 }
 
 .overview-btn:hover, .overview-btn.active {
