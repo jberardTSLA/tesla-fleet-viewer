@@ -1959,6 +1959,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .cod-char svg {
     height: 340px;
     width: auto;
+    animation: optimusBreath 3s ease-in-out infinite;
+}
+
+@keyframes optimusBreath {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
 }
 
 .cod-char-name {
