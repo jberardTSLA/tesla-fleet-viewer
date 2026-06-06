@@ -19,6 +19,11 @@
         <canvas id="threeBg" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;"></canvas>
         <div class="boot-glow"></div>
         <div class="boot-particles" id="bootParticles"></div>
+        <!-- Mute button -->
+        <button class="sfx-mute-btn" id="sfxMuteBtn" onclick="toggleMute()" title="Audio On/Off">
+            <svg id="sfxIconOn" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 7h3l4-4v14l-4-4H3V7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 5.5a6 6 0 010 9M11.5 8a3 3 0 010 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <svg id="sfxIconOff" width="20" height="20" viewBox="0 0 20 20" fill="none" style="display:none;"><path d="M3 7h3l4-4v14l-4-4H3V7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 8l4 4M18 8l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
         <div class="boot-content">
             <div class="boot-logo">
                 <svg class="boot-tesla-t" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">

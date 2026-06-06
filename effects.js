@@ -970,7 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (SFX._ctx) {
             SFX._ctx.resume().then(() => {
                 SFX._unlocked = true;
-                SFX.blip(); // conferma audio attivo
+                if (SFX._enabled) SFX.blip();
             });
         }
         document.removeEventListener('click', unlock);
@@ -979,6 +979,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', unlock);
     document.addEventListener('touchstart', unlock);
 });
+
+// Toggle mute
+window.toggleMute = function() {
+    SFX._enabled = !SFX._enabled;
+    const btn = document.getElementById('sfxMuteBtn');
+    const iconOn = document.getElementById('sfxIconOn');
+    const iconOff = document.getElementById('sfxIconOff');
+    if (btn) btn.classList.toggle('muted', !SFX._enabled);
+    if (iconOn) iconOn.style.display = SFX._enabled ? '' : 'none';
+    if (iconOff) iconOff.style.display = SFX._enabled ? 'none' : '';
+    if (SFX._enabled) SFX.blip();
+};
 
 // File caricato → R2D2
 const _origFileLoaded = window.gsapFileLoaded;
