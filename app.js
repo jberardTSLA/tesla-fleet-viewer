@@ -735,6 +735,12 @@ function processAndRender() {
         };
     }).filter(r => r.date !== null); // Remove rows with no valid date
 
+    // Feedback: warn if some rows were dropped
+    const dropped = rawData.length - processed.length;
+    if (dropped > 0 && processed.length > 0) {
+        console.warn('[Fleet Viewer] ' + dropped + ' righe scartate per data non valida su ' + rawData.length + ' totali.');
+    }
+
     // Safety check: if ALL rows got filtered out, keep them anyway with today's date
     if (processed.length === 0 && rawData.length > 0) {
         console.warn('[Fleet Viewer] ATTENZIONE: nessuna data valida trovata! Usando la data odierna come fallback per ' + rawData.length + ' righe.');
@@ -862,6 +868,24 @@ function parseDateString(str) {
     // Fallback: let JavaScript try
     d = new Date(str);
     return isNaN(d.getTime()) ? null : d;
+}
+
+// ─── Global isAtHub — single source of truth ────────────────
+function isAtHub(r) {
+    const pos = (r.lastKnownLocation || '').trim().toLowerCase();
+    const hub = (r.location || '').trim().toLowerCase();
+    if (pos && hub) {
+        if (pos === hub || pos.includes(hub) || hub.includes(pos)) return true;
+        const hubCity = hub.replace(/\s*(sc|service center|hub|compound|terminal|porto)\s*/gi, '').trim();
+        if (hubCity.length >= 3 && pos.includes(hubCity)) return true;
+        if (pos === 'at sc' || pos.includes('at service center')) return true;
+        return false;
+    }
+    // Fallback: date-based
+    if (!r.date) return false;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const arrival = new Date(r.date); arrival.setHours(0,0,0,0);
+    return arrival <= today;
 }
 
 // ─── Filters ────────────────────────────────────────────────
@@ -1650,33 +1674,6 @@ function renderReadySection() {
         const ps = (r.finalPaymentStatus || '').trim().toUpperCase();
         if (ps.includes('INCOMPLETE') || ps.includes('NOT COMPLETE') || ps.includes('NOT PAID') || ps.includes('PENDING')) return false;
         return ps === 'COMPLETE' || ps === 'PAID' || ps === 'RECEIVED';
-    };
-
-    const isAtHub = (r) => {
-        const pos = (r.lastKnownLocation || '').trim().toLowerCase();
-        const hub = (r.location || '').trim().toLowerCase();
-
-        // Se abbiamo la posizione, verifichiamo che combaci con l'hub
-        if (pos && hub) {
-            // Match diretto
-            if (pos === hub) return true;
-            // Match parziale: la posizione contiene il nome dell'hub o viceversa
-            if (pos.includes(hub) || hub.includes(pos)) return true;
-            // Match per keyword: estraiamo la città dall'hub e cerchiamo nella posizione
-            // Es: "Milano Linate SC" → cerchiamo "milano" in posizione
-            const hubCity = hub.replace(/\s*(sc|service center|hub|compound|terminal|porto)\s*/gi, '').trim();
-            if (hubCity.length >= 3 && pos.includes(hubCity)) return true;
-            // Match "At SC" o "at service center" → generico, consideriamo a terra
-            if (pos === 'at sc' || pos.includes('at service center')) return true;
-            // Se la posizione è diversa dall'hub → NON è a terra
-            return false;
-        }
-
-        // Fallback se non c'è lastKnownLocation: usa la data arrivo
-        if (!r.date) return false;
-        const arrival = new Date(r.date);
-        arrival.setHours(0, 0, 0, 0);
-        return arrival <= today;
     };
 
     // Filter: Payment complete + at hub = READY
@@ -2529,22 +2526,6 @@ function _findCoords(name) {
     return null;
 }
 
-function _isCarAtHub(r) {
-    const pos = (r.lastKnownLocation || '').trim().toLowerCase();
-    const hub = (r.location || '').trim().toLowerCase();
-    if (pos && hub) {
-        if (pos === hub || pos.includes(hub) || hub.includes(pos)) return true;
-        const hubCity = hub.replace(/\s*(sc|service center|hub|compound|terminal|porto)\s*/gi, '').trim();
-        if (hubCity.length >= 3 && pos.includes(hubCity)) return true;
-        if (pos === 'at sc' || pos.includes('at service center')) return true;
-        return false;
-    }
-    if (!r.date) return false;
-    const today = new Date(); today.setHours(0,0,0,0);
-    const arrival = new Date(r.date); arrival.setHours(0,0,0,0);
-    return arrival <= today;
-}
-
 let _fleetMap = null;
 let _mapMarkerLayer = null;
 
@@ -2577,7 +2558,7 @@ function updateMapMarkers() {
 
     // Classify each order
     const orders = rawData.map(r => {
-        const atHub = _isCarAtHub(r);
+        const atHub = isAtHub(r);
         const isCH = r.isContainmentHold || false;
         const payIncomplete = r.finalPaymentStatus && !(['COMPLETE','PAID','RECEIVED'].includes((r.finalPaymentStatus||'').toUpperCase()));
         return { ...r, _atHub: atHub, _isCH: isCH, _payIncomplete: payIncomplete };
