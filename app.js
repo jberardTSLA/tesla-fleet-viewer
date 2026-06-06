@@ -2720,7 +2720,7 @@ function loadDemoData() {
     };
 
     bootFile1Loaded = true;
-    processAndRender();
+    updateBootButton();
     bootStart();
 }
 
