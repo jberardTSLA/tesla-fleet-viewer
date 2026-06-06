@@ -1356,99 +1356,81 @@ function renderTimelineChart() {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const todayKey = today.toISOString().split('T')[0];
 
-    // Group by date for next 30 days
-    const dayMap = {};
-    for (let i = 0; i < 30; i++) {
+    // Build date range: -7 to +30 days
+    const sortedKeys = [];
+    for (let i = -7; i < 30; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() + i);
-        const key = d.toISOString().split('T')[0];
-        dayMap[key] = { date: d, total: 0 };
+        sortedKeys.push(d.toISOString().split('T')[0]);
     }
 
-    // Also include past 7 days
-    for (let i = 7; i >= 1; i--) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        const key = d.toISOString().split('T')[0];
-        dayMap[key] = { date: d, total: 0 };
-    }
+    // Get unique locations
+    const locations = [...new Set(filteredData.map(r => r.location))].sort();
+
+    // Group by date × location
+    const locDayMap = {};
+    locations.forEach(loc => {
+        locDayMap[loc] = {};
+        sortedKeys.forEach(k => locDayMap[loc][k] = 0);
+    });
 
     filteredData.forEach(row => {
-        if (row.date) {
+        if (row.date && row.location) {
             const key = row.date.toISOString().split('T')[0];
-            if (dayMap[key]) {
-                dayMap[key].total += 1;
+            if (locDayMap[row.location] && locDayMap[row.location][key] !== undefined) {
+                locDayMap[row.location][key]++;
             }
         }
     });
 
-    const sortedKeys = Object.keys(dayMap).sort();
     const labels = sortedKeys.map(k => {
-        const d = dayMap[k].date;
+        const d = new Date(k + 'T00:00:00');
         return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
     });
-    const values = sortedKeys.map(k => dayMap[k].total);
 
-    // Find today index for annotation
-    const todayKey = today.toISOString().split('T')[0];
-    const todayIdx = sortedKeys.indexOf(todayKey);
+    // Build stacked datasets per location
+    const datasets = locations.map((loc, i) => ({
+        label: loc,
+        data: sortedKeys.map(k => locDayMap[loc][k]),
+        backgroundColor: CHART_COLORS[i % CHART_COLORS.length] + '99',
+        borderColor: CHART_COLORS[i % CHART_COLORS.length],
+        borderWidth: 1,
+        borderRadius: 2,
+    }));
 
     charts['chartTimeline'] = new Chart(ctx, {
         type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Arrivi (qty)',
-                data: values,
-                backgroundColor: sortedKeys.map((k, i) => {
-                    if (k === todayKey) return 'rgba(34, 197, 94, 0.7)';
-                    if (k < todayKey) return 'rgba(107, 114, 128, 0.4)';
-                    return 'rgba(59, 130, 246, 0.6)';
-                }),
-                borderColor: sortedKeys.map((k) => {
-                    if (k === todayKey) return '#22c55e';
-                    if (k < todayKey) return 'rgba(107, 114, 128, 0.6)';
-                    return '#3b82f6';
-                }),
-                borderWidth: 1,
-                borderRadius: 4,
-                borderSkipped: false,
-            }]
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: locations.length <= 12,
+                    position: 'bottom',
+                    labels: { color: '#5a7a9e', font: { size: 9, family: 'Inter' }, boxWidth: 10, padding: 8 }
+                },
                 tooltip: {
                     backgroundColor: 'rgba(10, 22, 40, 0.95)',
-                    titleColor: '#e8edf5',
-                    bodyColor: '#8ba3c7',
-                    borderColor: 'rgba(59, 130, 246, 0.3)',
-                    borderWidth: 1,
-                    padding: 12,
-                    titleFont: { family: 'Inter', weight: 600 },
+                    titleColor: '#e8edf5', bodyColor: '#8ba3c7',
+                    borderColor: 'rgba(59, 130, 246, 0.3)', borderWidth: 1,
+                    padding: 10, titleFont: { family: 'Inter', weight: 600 },
                     bodyFont: { family: 'Inter' },
                 }
             },
             scales: {
                 x: {
+                    stacked: true,
                     grid: { color: 'rgba(59, 130, 246, 0.06)' },
-                    ticks: {
-                        color: '#5a7a9e',
-                        font: { size: 10, family: 'Inter' },
-                        maxRotation: 45,
-                    }
+                    ticks: { color: '#5a7a9e', font: { size: 10, family: 'Inter' }, maxRotation: 45 }
                 },
                 y: {
+                    stacked: true,
                     beginAtZero: true,
                     grid: { color: 'rgba(59, 130, 246, 0.06)' },
-                    ticks: {
-                        color: '#5a7a9e',
-                        font: { size: 11, family: 'Inter' },
-                        stepSize: 1,
-                    }
+                    ticks: { color: '#5a7a9e', font: { size: 11, family: 'Inter' }, stepSize: 1 }
                 }
             },
             animation: { duration: 800 }
@@ -1489,21 +1471,41 @@ function renderPivotTable() {
         }
     });
 
+    // Calc next arrival and weekly arrivals per location
+    const today = new Date(); today.setHours(0,0,0,0);
+    const weekEnd = new Date(today); weekEnd.setDate(today.getDate() + 7);
+    const nextArrival = {};
+    const weekArrivals = {};
+    locations.forEach(loc => { nextArrival[loc] = null; weekArrivals[loc] = 0; });
+    filteredData.forEach(row => {
+        if (row.date && row.location) {
+            const d = new Date(row.date); d.setHours(0,0,0,0);
+            if (d >= today) {
+                if (!nextArrival[row.location] || d < nextArrival[row.location]) nextArrival[row.location] = d;
+                if (d <= weekEnd) weekArrivals[row.location] = (weekArrivals[row.location] || 0) + 1;
+            }
+        }
+    });
+
     // Render header
     head.innerHTML = '<tr><th>Location / Hub</th>' +
         models.map(m => '<th>' + escapeHtml(m) + '</th>').join('') +
-        '<th>TOTALE</th></tr>';
+        '<th>TOTALE</th><th>Prossimo Arrivo</th><th>Arrivi 7gg</th></tr>';
 
     // Render rows
     body.innerHTML = locations.map(loc => {
+        const na = nextArrival[loc] ? nextArrival[loc].toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) : '—';
+        const wa = weekArrivals[loc] || 0;
         return '<tr><td><strong>' + escapeHtml(loc) + '</strong></td>' +
             models.map(mod => '<td>' + (matrix[loc][mod] || 0).toLocaleString('it-IT') + '</td>').join('') +
-            '<td><strong>' + locationTotals[loc].toLocaleString('it-IT') + '</strong></td></tr>';
+            '<td><strong>' + locationTotals[loc].toLocaleString('it-IT') + '</strong></td>' +
+            '<td style="color:#06b6d4;">' + na + '</td>' +
+            '<td style="color:' + (wa > 0 ? '#eab308' : '#5a7a9e') + ';font-weight:700;">' + wa + '</td></tr>';
     }).join('') +
     // Total row
     '<tr class="pivot-total"><td><strong>TOTALE</strong></td>' +
     models.map(mod => '<td>' + modelTotals[mod].toLocaleString('it-IT') + '</td>').join('') +
-    '<td>' + grandTotal.toLocaleString('it-IT') + '</td></tr>';
+    '<td>' + grandTotal.toLocaleString('it-IT') + '</td><td></td><td></td></tr>';
 }
 
 // ─── Postpone Table ─────────────────────────────────────────
