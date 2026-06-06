@@ -61,40 +61,6 @@
                 </div>
             </div>
 
-            <!-- LIVE MODE Divider -->
-            <div class="boot-divider">
-                <span class="boot-divider-line"></span>
-                <span class="boot-divider-text">OPPURE</span>
-                <span class="boot-divider-line"></span>
-            </div>
-
-            <!-- LIVE MODE Button -->
-            <div class="boot-live-section">
-                <button class="boot-live-btn" id="bootLiveBtn" onclick="activateLiveMode()">
-                    <span class="boot-live-icon">
-                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                            <circle cx="11" cy="11" r="4" fill="currentColor" opacity="0.9"/>
-                            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
-                            <circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1" opacity="0.25"/>
-                        </svg>
-                    </span>
-                    <span class="boot-live-text">
-                        <strong>LIVE MODE</strong>
-                        <small>Connetti all'API per dati in tempo reale</small>
-                    </span>
-                    <span class="boot-live-pulse"></span>
-                </button>
-                <div class="boot-live-config" id="bootLiveConfig" style="display:none;">
-                    <label>API Base URL</label>
-                    <input type="text" id="liveApiUrl" value="http://localhost:3000" placeholder="http://localhost:3000" spellcheck="false">
-                    <button class="boot-live-connect" id="bootLiveConnect" onclick="connectLiveMode()">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M10 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        CONNETTI
-                    </button>
-                    <span class="boot-live-status" id="bootLiveStatus"></span>
-                </div>
-            </div>
-
             <button class="boot-start-btn" id="bootStartBtn" disabled onclick="bootStart()">
                 <span class="boot-start-text">IN ATTESA DATI...</span>
             </button>
@@ -507,24 +473,6 @@
                 </div>
             </div>
             <div class="header-right">
-                <!-- Live Mode Indicators (hidden until active) -->
-                <div class="header-live-group" id="headerLiveGroup" style="display:none;">
-                    <div class="header-live-badge" id="headerLiveBadge" onclick="toggleLiveMode()">
-                        <span class="live-dot"></span>
-                        <span>LIVE</span>
-                    </div>
-                    <div class="header-last-update" id="headerLastUpdate">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M7 4v3l2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                        <span id="lastUpdateTime">--:--:--</span>
-                    </div>
-                    <div class="header-countdown" id="headerCountdown">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v2M7 11v2M1 7h2M11 7h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="7" r="4" stroke="currentColor" stroke-width="1.2"/></svg>
-                        <span id="countdownText">5:00</span>
-                    </div>
-                    <button class="header-refresh-btn" id="headerRefreshBtn" onclick="manualLiveRefresh()" title="Aggiorna ora">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.5 7a5.5 5.5 0 0 1 9.37-3.9M12.5 7a5.5 5.5 0 0 1-9.37 3.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.87 0.5v2.6h-2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.13 13.5v-2.6h2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </button>
-                </div>
                 <div class="header-date">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="7" x2="14" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="1" x2="5" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="1" x2="11" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
                     <span id="currentDate"></span>
