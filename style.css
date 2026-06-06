@@ -1998,6 +1998,59 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     animation: vsPulse 1.5s ease-in-out infinite;
 }
 
+/* Giant Overview Robot (background) */
+.cod-char-giant {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0.25;
+    transition: all 0.5s ease;
+    filter: blur(0.5px);
+}
+
+.cod-char-giant svg {
+    height: 420px;
+    width: auto;
+}
+
+.cod-char-giant:hover {
+    opacity: 0.55;
+    filter: blur(0px) drop-shadow(0 0 30px rgba(234,179,8,0.2));
+    transform: translateX(-50%) scale(1.03);
+}
+
+.cod-char-giant.active {
+    opacity: 0.7;
+    filter: blur(0px) drop-shadow(0 0 40px rgba(234,179,8,0.4));
+    transform: translateX(-50%) scale(1.05);
+}
+
+.cod-giant-label {
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    color: #eab308;
+    opacity: 0;
+    transition: opacity 0.3s;
+    margin-top: -30px;
+}
+
+.cod-char-giant:hover .cod-giant-label,
+.cod-char-giant.active .cod-giant-label {
+    opacity: 1;
+    text-shadow: 0 0 10px rgba(234,179,8,0.6);
+}
+
+/* Ensure lineup robots are above the giant */
+.cod-char-ops, .cod-char-spec { position: relative; z-index: 5; }
+.cod-vs { z-index: 6; }
+
 @keyframes vsPulse {
     0%, 100% { text-shadow: 0 0 15px rgba(234,179,8,0.4); transform: scale(1); }
     50% { text-shadow: 0 0 30px rgba(234,179,8,0.8), 0 0 60px rgba(234,179,8,0.4); transform: scale(1.08); }

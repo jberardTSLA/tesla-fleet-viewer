@@ -235,6 +235,10 @@ const OPTIMUS_DATA = [
       skill1: 'TO-DO LIST', desc1: 'Azioni prioritizzate per urgenza sui tuoi ordini',
       skill2: 'CONSEGNE', desc2: 'Veicoli pronti, da schedulare, in arrivo',
       requires: 'File 1', locked: false },
+    { id: 'overview', name: 'OVERVIEW', classType: 'FLEET PANORAMICA', color: '#eab308',
+      skill1: 'TUTTA ITALIA', desc1: 'Panoramica completa di tutti gli hub e advisor',
+      skill2: 'ANALYTICS', desc2: 'Grafici, pivot, timeline, KPI nazionali',
+      requires: 'File 1', locked: false },
 ];
 
 let selectedRoster = 0;
@@ -243,10 +247,12 @@ function selectRoster(idx) {
     selectedRoster = idx;
     const d = OPTIMUS_DATA[idx];
 
-    // Update character highlights
-    document.querySelectorAll('.cod-char').forEach((c, i) => {
-        c.classList.toggle('active', i === idx);
+    // Update character highlights (char0, char1 = normal, char2 = giant)
+    document.querySelectorAll('.cod-char, .cod-char-giant').forEach((c) => {
+        c.classList.remove('active');
     });
+    const charEl = document.getElementById('char' + idx);
+    if (charEl) charEl.classList.add('active');
 
     // GSAP switch animation
     if (window.gsapSwitchChar) gsapSwitchChar(idx);
@@ -277,12 +283,13 @@ function deployOptimus() {
     if (d.id === 'ops') {
         const hub = document.getElementById('opsHubSelect').value;
         if (!hub) { alert('Seleziona un Hub dal menu a tendina!'); return; }
-        // Will set filter after dashboard shows
         window._deployFilter = { type: 'location', value: hub };
     } else if (d.id === 'specialist') {
         const spec = document.getElementById('specNameSelect').value;
         if (!spec) { alert('Seleziona un Advisor dal menu a tendina!'); return; }
         window._deployFilter = { type: 'specialist', value: spec };
+    } else if (d.id === 'overview') {
+        window._deployFilter = { type: 'overview' };
     }
 
     selectOptimus(d.id);
@@ -303,12 +310,21 @@ function selectOptimus(section) {
             } else if (f.type === 'specialist') {
                 const specEl = document.getElementById('filterSpecialist');
                 if (specEl) specEl.value = f.value;
+            } else if (f.type === 'overview') {
+                // Reset all filters for full Italy view
+                document.getElementById('filterLocation').value = 'all';
+                const specEl = document.getElementById('filterSpecialist');
+                if (specEl) specEl.value = 'all';
+                document.getElementById('filterStatus').value = 'all';
+                document.getElementById('filterModel').value = 'all';
+                document.getElementById('filterEnterprise').value = 'all';
+                document.getElementById('filterDateFrom').value = '';
+                document.getElementById('filterDateTo').value = '';
             }
             window._deployFilter = null;
             applyFilters();
 
-            // Scroll to the right section
-            const targetId = f.type === 'location' ? 'opsSection' : 'specialistSection';
+            const targetId = f.type === 'location' ? 'opsSection' : f.type === 'specialist' ? 'specialistSection' : 'dashboard';
             setTimeout(() => {
                 const el = document.getElementById(targetId);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });

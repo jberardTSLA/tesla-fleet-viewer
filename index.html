@@ -89,6 +89,37 @@
         </div>
         <div class="cod-layout">
             <div class="cod-lineup" id="codLineup">
+                <!-- GIANT OVERVIEW ROBOT (background, behind everything) -->
+                <div class="cod-char-giant" id="char2" onclick="selectRoster(2)">
+                    <svg viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Head -->
+                        <ellipse cx="100" cy="50" rx="32" ry="40" fill="#111" stroke="#1a1a1a" stroke-width="0.8" opacity="0.5"/>
+                        <path d="M68 40 Q100 24 132 40" stroke="#eab308" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6" class="optimus-led"/>
+                        <!-- Visor -->
+                        <rect x="76" y="38" width="48" height="12" rx="5" fill="rgba(234,179,8,0.08)" stroke="#eab308" stroke-width="0.5" opacity="0.4"/>
+                        <!-- Neck -->
+                        <rect x="90" y="87" width="20" height="14" rx="4" fill="#1a1a1a" opacity="0.4"/>
+                        <!-- Torso -->
+                        <path d="M60 101 L140 101 L144 120 Q144 128 140 132 L134 160 L66 160 L60 132 Q56 128 56 120 Z" fill="#d4d4d4" stroke="#aaa" stroke-width="0.5" opacity="0.3"/>
+                        <!-- ITALIA badge -->
+                        <rect x="74" y="118" width="52" height="20" rx="4" fill="rgba(234,179,8,0.1)" stroke="#eab308" stroke-width="0.6" opacity="0.5"/>
+                        <text x="100" y="132" text-anchor="middle" font-size="8" fill="#eab308" font-family="sans-serif" font-weight="bold" opacity="0.7">ITALIA</text>
+                        <!-- Arms down relaxed -->
+                        <path d="M60 106 L42 115 L30 145 L34 170" stroke="#d4d4d4" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.25"/>
+                        <path d="M140 106 L158 115 L170 145 L166 170" stroke="#d4d4d4" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.25"/>
+                        <!-- Waist -->
+                        <rect x="66" y="160" width="68" height="22" rx="5" fill="#1a1a1a" opacity="0.25"/>
+                        <!-- Legs -->
+                        <path d="M82 182 L78 240" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.2"/>
+                        <path d="M118 182 L122 240" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.2"/>
+                        <rect x="70" y="238" width="14" height="10" rx="3" fill="#1a1a1a" opacity="0.15"/>
+                        <rect x="116" y="238" width="14" height="10" rx="3" fill="#1a1a1a" opacity="0.15"/>
+                        <path d="M76 248 L72 290" stroke="#d4d4d4" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.15"/>
+                        <path d="M124 248 L128 290" stroke="#d4d4d4" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.15"/>
+                    </svg>
+                    <span class="cod-giant-label">OVERVIEW</span>
+                </div>
+
                 <!-- OPS MODE (left, RED) -->
                 <div class="cod-char cod-char-ops" id="char0" onclick="selectRoster(0)">
                     <svg viewBox="0 0 160 300" xmlns="http://www.w3.org/2000/svg">
