@@ -2990,27 +2990,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 
-/* Demo mode button */
-.boot-demo-btn {
-    display: block;
-    margin: 10px auto 0;
-    padding: 8px 20px;
-    background: transparent;
+/* Demo mode link */
+.boot-demo-link {
     color: var(--text-muted);
-    border: 1px solid rgba(59,130,246,0.15);
-    border-radius: 8px;
-    font-family: var(--font-heading);
-    font-size: 0.6rem;
-    font-weight: 600;
-    letter-spacing: 2px;
+    text-decoration: none;
+    font-size: 0.75rem;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: color 0.3s;
+    position: relative;
+    z-index: 10;
 }
 
-.boot-demo-btn:hover {
+.boot-demo-link:hover {
     color: var(--accent-cyan);
-    border-color: rgba(6,182,212,0.3);
-    background: rgba(6,182,212,0.05);
+    text-decoration: underline;
 }
 
 .boot-start-btn {
