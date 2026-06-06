@@ -820,12 +820,18 @@ window.gsapOptimus = function() {
 const SFX = {
     _ctx: null,
     _enabled: true,
-    _volume: 0.25,
+    _volume: 0.6,
+    _unlocked: false,
 
     init() {
-        if (this._ctx) return;
-        try { this._ctx = new (window.AudioContext || window.webkitAudioContext)(); }
-        catch(e) { this._enabled = false; }
+        if (this._ctx) {
+            if (this._ctx.state === 'suspended') this._ctx.resume();
+            return;
+        }
+        try {
+            this._ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (this._ctx.state === 'suspended') this._ctx.resume();
+        } catch(e) { this._enabled = false; }
     },
 
     _gain(vol) {
@@ -841,7 +847,7 @@ const SFX = {
         const ctx = this._ctx, now = ctx.currentTime;
         [[800,1800,1200,0,0.15],[1000,2200,1600,0.18,0.35],[1400,2400,null,0.38,0.5]].forEach(([f1,f2,f3,start,end],i) => {
             const o = ctx.createOscillator(); o.type = 'sine';
-            const g = this._gain(0.22 - i*0.02);
+            const g = this._gain(0.4 - i*0.05);
             o.frequency.setValueAtTime(f1, now+start);
             o.frequency.exponentialRampToValueAtTime(f2, now+start+(end-start)*0.5);
             if (f3) o.frequency.exponentialRampToValueAtTime(f3, now+end);
@@ -858,8 +864,8 @@ const SFX = {
         o.frequency.linearRampToValueAtTime(120, now+0.3);
         const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 400; f.Q.value = 8;
         const g = this._gain(0);
-        g.gain.linearRampToValueAtTime(0.15*this._volume, now+0.05);
-        g.gain.linearRampToValueAtTime(0.06*this._volume, now+0.4);
+        g.gain.linearRampToValueAtTime(0.3*this._volume, now+0.05);
+        g.gain.linearRampToValueAtTime(0.12*this._volume, now+0.4);
         g.gain.linearRampToValueAtTime(0, now+0.55);
         o.connect(f); f.connect(g); o.start(now); o.stop(now+0.6);
         // Sweep
@@ -867,7 +873,7 @@ const SFX = {
         o2.frequency.setValueAtTime(200, now);
         o2.frequency.exponentialRampToValueAtTime(800, now+0.12);
         o2.frequency.exponentialRampToValueAtTime(400, now+0.35);
-        const g2 = this._gain(0.08);
+        const g2 = this._gain(0.15);
         g2.gain.linearRampToValueAtTime(0, now+0.35);
         o2.connect(g2); o2.start(now); o2.stop(now+0.35);
     },
@@ -885,8 +891,8 @@ const SFX = {
         f.frequency.exponentialRampToValueAtTime(4000, now+0.45);
         f.frequency.exponentialRampToValueAtTime(200, now+0.85);
         const g = this._gain(0);
-        g.gain.linearRampToValueAtTime(0.15*this._volume, now+0.12);
-        g.gain.linearRampToValueAtTime(0.2*this._volume, now+0.45);
+        g.gain.linearRampToValueAtTime(0.25*this._volume, now+0.12);
+        g.gain.linearRampToValueAtTime(0.35*this._volume, now+0.45);
         g.gain.linearRampToValueAtTime(0, now+0.85);
         o.connect(f); f.connect(g); o.start(now); o.stop(now+0.9);
         // Rumble
@@ -894,7 +900,7 @@ const SFX = {
         const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.3;
         const n = ctx.createBufferSource(); n.buffer = buf;
         const nf = ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=150;
-        const gn = this._gain(0); gn.gain.linearRampToValueAtTime(0.08*this._volume,now+0.08);
+        const gn = this._gain(0); gn.gain.linearRampToValueAtTime(0.15*this._volume,now+0.08);
         gn.gain.linearRampToValueAtTime(0,now+0.7);
         n.connect(nf); nf.connect(gn); n.start(now); n.stop(now+0.7);
     },
@@ -906,7 +912,7 @@ const SFX = {
         const o = ctx.createOscillator(); o.type = 'square';
         o.frequency.setValueAtTime(1200, now);
         o.frequency.exponentialRampToValueAtTime(200, now+0.1);
-        const g = this._gain(0.08);
+        const g = this._gain(0.15);
         g.gain.exponentialRampToValueAtTime(0.001, now+0.1);
         o.connect(g); o.start(now); o.stop(now+0.11);
     },
@@ -919,8 +925,8 @@ const SFX = {
         [[196,0.12],[196,0.12],[196,0.12],[156,0.35]].forEach(([freq,dur]) => {
             const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = freq;
             const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=800;
-            const g = this._gain(0.07);
-            g.gain.setValueAtTime(0.07*this._volume, t);
+            const g = this._gain(0.15);
+            g.gain.setValueAtTime(0.15*this._volume, t);
             g.gain.linearRampToValueAtTime(0, t+dur*0.85);
             o.connect(f); f.connect(g); o.start(t); o.stop(t+dur);
             t += dur + 0.02;
@@ -934,8 +940,8 @@ const SFX = {
         let t = now;
         [262,330,392,523].forEach((freq,i) => {
             const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = freq;
-            const g = this._gain(0.1-i*0.01);
-            g.gain.setValueAtTime((0.1-i*0.01)*this._volume, t);
+            const g = this._gain(0.2-i*0.02);
+            g.gain.setValueAtTime((0.2-i*0.02)*this._volume, t);
             g.gain.linearRampToValueAtTime(0, t+0.22);
             o.connect(g); o.start(t); o.stop(t+0.25);
             t += 0.11;
@@ -949,7 +955,7 @@ const SFX = {
         const o = ctx.createOscillator(); o.type = 'sine';
         o.frequency.setValueAtTime(1400, now);
         o.frequency.exponentialRampToValueAtTime(1800, now+0.04);
-        const g = this._gain(0.05);
+        const g = this._gain(0.12);
         g.gain.exponentialRampToValueAtTime(0.001, now+0.05);
         o.connect(g); o.start(now); o.stop(now+0.06);
     },
@@ -957,10 +963,21 @@ const SFX = {
 
 // ─── Hook suoni negli eventi ────────────────────────────────
 
-// Sblocca audio al primo click (browser policy)
+// Sblocca audio al primo click (browser policy) + blip di conferma
 document.addEventListener('DOMContentLoaded', () => {
-    const unlock = () => { SFX.init(); if(SFX._ctx?.state==='suspended') SFX._ctx.resume(); document.removeEventListener('click',unlock); };
+    const unlock = (e) => {
+        SFX.init();
+        if (SFX._ctx) {
+            SFX._ctx.resume().then(() => {
+                SFX._unlocked = true;
+                SFX.blip(); // conferma audio attivo
+            });
+        }
+        document.removeEventListener('click', unlock);
+        document.removeEventListener('touchstart', unlock);
+    };
     document.addEventListener('click', unlock);
+    document.addEventListener('touchstart', unlock);
 });
 
 // File caricato → R2D2
