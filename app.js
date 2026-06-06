@@ -227,11 +227,11 @@ function handleFile2Merge(jsonData) {
 
 // ─── OPTIMUS INTRO (OPS vs ADVISOR) ─────────────────────────
 const OPTIMUS_DATA = [
-    { id: 'ops', name: 'OPS MODE', classType: 'OPS COORDINATOR', color: '#a855f7',
+    { id: 'ops', name: 'OPS MODE', classType: 'OPS COORDINATOR', color: '#ef4444',
       skill1: 'URGENZE HUB', desc1: 'Gestisci tutte le urgenze della tua location',
       skill2: 'TEAM CONTROL', desc2: 'Monitora il carico di lavoro di ogni advisor',
       requires: 'File 1', locked: false },
-    { id: 'specialist', name: 'ADVISOR MODE', classType: 'DELIVERY ADVISOR', color: '#06b6d4',
+    { id: 'specialist', name: 'ADVISOR MODE', classType: 'DELIVERY ADVISOR', color: '#3b82f6',
       skill1: 'TO-DO LIST', desc1: 'Azioni prioritizzate per urgenza sui tuoi ordini',
       skill2: 'CONSEGNE', desc2: 'Veicoli pronti, da schedulare, in arrivo',
       requires: 'File 1', locked: false },

@@ -2025,11 +2025,50 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     box-shadow: 0 0 12px rgba(6,182,212,0.2);
 }
 
-.cod-char-ops.active .cod-mode-select { border-color: rgba(168,85,247,0.5); }
-.cod-char-spec.active .cod-mode-select { border-color: rgba(6,182,212,0.5); }
+.cod-char-ops.active .cod-mode-select { border-color: rgba(239,68,68,0.5); }
+.cod-char-spec.active .cod-mode-select { border-color: rgba(59,130,246,0.5); }
 
-#char0.active::after { background: radial-gradient(ellipse, rgba(168,85,247,0.5) 0%, rgba(168,85,247,0.15) 40%, transparent 70%); }
-#char1.active::after { background: radial-gradient(ellipse, rgba(6,182,212,0.5) 0%, rgba(6,182,212,0.15) 40%, transparent 70%); }
+#char0.active::after { background: radial-gradient(ellipse, rgba(239,68,68,0.5) 0%, rgba(239,68,68,0.15) 40%, transparent 70%); }
+#char1.active::after { background: radial-gradient(ellipse, rgba(59,130,246,0.5) 0%, rgba(59,130,246,0.15) 40%, transparent 70%); }
+
+/* High-five impact */
+.cod-highfive {
+    animation: hfPulse 1.2s ease-in-out infinite;
+}
+
+.hf-star {
+    animation: hfStarSpin 3s linear infinite;
+    transform-origin: 30px 30px;
+}
+
+.hf-spark {
+    animation: hfSparkFlash 0.8s ease-in-out infinite alternate;
+}
+
+.hf-ring {
+    animation: hfRingPulse 1.5s ease-in-out infinite;
+    transform-origin: 30px 30px;
+}
+
+@keyframes hfPulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(234,179,8,0.3)); }
+    50% { transform: scale(1.15); filter: drop-shadow(0 0 20px rgba(234,179,8,0.7)); }
+}
+
+@keyframes hfStarSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes hfSparkFlash {
+    0% { opacity: 0.3; stroke-width: 1; }
+    100% { opacity: 1; stroke-width: 2.5; }
+}
+
+@keyframes hfRingPulse {
+    0%, 100% { r: 6; opacity: 0.4; }
+    50% { r: 10; opacity: 0.1; }
+}
 
 /* ═══ NEON GLOW PLATFORM for active character ═══ */
 .cod-char::after {

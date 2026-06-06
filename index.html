@@ -89,61 +89,84 @@
         </div>
         <div class="cod-layout">
             <div class="cod-lineup" id="codLineup">
-                <!-- OPS MODE (left) -->
+                <!-- OPS MODE (left, RED) -->
                 <div class="cod-char cod-char-ops" id="char0" onclick="selectRoster(0)">
-                    <svg viewBox="0 0 140 300" xmlns="http://www.w3.org/2000/svg">
-                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#a855f7" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
+                    <svg viewBox="0 0 160 300" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Head -->
+                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#ef4444" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
+                        <!-- Neck -->
                         <rect x="62" y="60" width="16" height="10" rx="3" fill="#1a1a1a"/>
+                        <!-- Torso -->
                         <path d="M42 70 L98 70 L101 84 Q101 90 98 93 L93 115 L47 115 L42 93 Q39 90 39 84 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="0.8"/>
                         <circle cx="58" cy="82" r="1.5" fill="#888"/><circle cx="63" cy="82" r="1.5" fill="#888"/><circle cx="68" cy="82" r="1.5" fill="#888"/><circle cx="73" cy="82" r="1.5" fill="#888"/><circle cx="78" cy="82" r="1.5" fill="#888"/>
+                        <!-- Red stripe accents -->
+                        <line x1="50" y1="100" x2="90" y2="100" stroke="#ef4444" stroke-width="1" opacity="0.4"/>
+                        <line x1="50" y1="105" x2="90" y2="105" stroke="#ef4444" stroke-width="1" opacity="0.4"/>
                         <rect x="47" y="115" width="46" height="18" rx="4" fill="#1a1a1a"/>
-                        <!-- Right arm extended for arm wrestle -->
-                        <g class="arm-right"><path d="M98 74 L115 68 L128 62 L132 58" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="134" cy="56" rx="5" ry="5" fill="#333" stroke="#a855f7" stroke-width="1"/></g>
-                        <!-- Left arm on hip -->
-                        <g class="arm-left"><path d="M42 74 L30 80 L28 100" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M28 100 L35 115" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/></g>
-                        <!-- Badge on chest -->
-                        <rect x="55" y="85" width="30" height="14" rx="3" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="0.8"/>
-                        <text x="70" y="95" text-anchor="middle" font-size="6" fill="#a855f7" font-family="sans-serif" font-weight="bold">OPS</text>
+                        <!-- RIGHT arm UP for high-five -->
+                        <g class="arm-right"><path d="M98 74 L112 65 L124 42 L130 28" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M130 28 L135 18" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="136" cy="14" rx="6" ry="5" fill="#333" stroke="#ef4444" stroke-width="1.2"/></g>
+                        <!-- Left arm relaxed -->
+                        <g class="arm-left"><path d="M42 74 L30 80 L26 100" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M26 100 L30 118" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="31" cy="122" rx="5" ry="4" fill="#222"/></g>
+                        <!-- Badge OPS -->
+                        <rect x="55" y="85" width="30" height="14" rx="3" fill="rgba(239,68,68,0.2)" stroke="#ef4444" stroke-width="0.8"/>
+                        <text x="70" y="95" text-anchor="middle" font-size="6" fill="#ef4444" font-family="sans-serif" font-weight="bold">OPS</text>
+                        <!-- Legs -->
                         <path d="M56 133 L53 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="48" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M54 180 L52 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
                         <path d="M84 133 L87 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="80" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M86 180 L88 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
                         <path d="M44 215 L62 215 L63 224 L43 224 Z" fill="#1a1a1a"/><path d="M80 215 L98 215 L99 224 L79 224 Z" fill="#1a1a1a"/>
                     </svg>
                     <span class="cod-char-name">OPS MODE</span>
-                    <!-- Hub selector -->
                     <select class="cod-mode-select" id="opsHubSelect" onclick="event.stopPropagation()">
                         <option value="">Seleziona Hub...</option>
                     </select>
                 </div>
 
-                <!-- VS Badge -->
+                <!-- HIGH-FIVE sparks in the middle -->
                 <div class="cod-vs">
-                    <span class="cod-vs-text">VS</span>
-                    <div class="cod-vs-sparks"></div>
+                    <div class="cod-highfive">
+                        <svg viewBox="0 0 60 60" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Impact star -->
+                            <polygon points="30,5 34,22 50,15 38,28 55,30 38,33 50,45 34,38 30,55 26,38 10,45 22,33 5,30 22,28 10,15 26,22" fill="none" stroke="#eab308" stroke-width="1" opacity="0.6" class="hf-star"/>
+                            <!-- Spark lines -->
+                            <line x1="30" y1="10" x2="30" y2="2" stroke="#eab308" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
+                            <line x1="48" y1="15" x2="54" y2="9" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
+                            <line x1="12" y1="15" x2="6" y2="9" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
+                            <line x1="50" y1="30" x2="58" y2="30" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
+                            <line x1="10" y1="30" x2="2" y2="30" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
+                            <circle cx="30" cy="30" r="6" fill="none" stroke="#eab308" stroke-width="1.5" opacity="0.4" class="hf-ring"/>
+                        </svg>
+                    </div>
                 </div>
 
-                <!-- SPECIALIST MODE (right, mirrored) -->
+                <!-- ADVISOR MODE (right, BLUE, mirrored) -->
                 <div class="cod-char cod-char-spec" id="char1" onclick="selectRoster(1)">
-                    <svg viewBox="0 0 140 300" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1);">
-                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#06b6d4" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
+                    <svg viewBox="0 0 160 300" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1);">
+                        <!-- Head -->
+                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#3b82f6" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
+                        <!-- Neck -->
                         <rect x="62" y="60" width="16" height="10" rx="3" fill="#1a1a1a"/>
+                        <!-- Torso -->
                         <path d="M42 70 L98 70 L101 84 Q101 90 98 93 L93 115 L47 115 L42 93 Q39 90 39 84 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="0.8"/>
                         <circle cx="58" cy="82" r="1.5" fill="#888"/><circle cx="63" cy="82" r="1.5" fill="#888"/><circle cx="68" cy="82" r="1.5" fill="#888"/><circle cx="73" cy="82" r="1.5" fill="#888"/><circle cx="78" cy="82" r="1.5" fill="#888"/>
+                        <!-- Blue stripe accents -->
+                        <line x1="50" y1="100" x2="90" y2="100" stroke="#3b82f6" stroke-width="1" opacity="0.4"/>
+                        <line x1="50" y1="105" x2="90" y2="105" stroke="#3b82f6" stroke-width="1" opacity="0.4"/>
                         <rect x="47" y="115" width="46" height="18" rx="4" fill="#1a1a1a"/>
-                        <!-- Right arm extended for arm wrestle -->
-                        <g class="arm-right"><path d="M98 74 L115 68 L128 62 L132 58" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="134" cy="56" rx="5" ry="5" fill="#333" stroke="#06b6d4" stroke-width="1"/></g>
-                        <!-- Left arm with clipboard -->
+                        <!-- RIGHT arm UP for high-five (mirrored = left visually) -->
+                        <g class="arm-right"><path d="M98 74 L112 65 L124 42 L130 28" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M130 28 L135 18" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="136" cy="14" rx="6" ry="5" fill="#333" stroke="#3b82f6" stroke-width="1.2"/></g>
+                        <!-- Left arm with tablet -->
                         <g class="arm-left"><path d="M42 74 L30 80 L26 100" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M26 100 L24 118" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <rect x="10" y="102" width="20" height="26" rx="2" fill="#0f1f3d" stroke="#06b6d4" stroke-width="1"/><line x1="14" y1="110" x2="26" y2="110" stroke="#06b6d4" stroke-width="0.7" opacity="0.5"/><line x1="14" y1="115" x2="22" y2="115" stroke="#06b6d4" stroke-width="0.7" opacity="0.5"/><line x1="14" y1="120" x2="24" y2="120" stroke="#06b6d4" stroke-width="0.7" opacity="0.5"/>
+                            <rect x="10" y="102" width="20" height="26" rx="2" fill="#0f1f3d" stroke="#3b82f6" stroke-width="1"/><line x1="14" y1="110" x2="26" y2="110" stroke="#3b82f6" stroke-width="0.7" opacity="0.5"/><line x1="14" y1="115" x2="22" y2="115" stroke="#3b82f6" stroke-width="0.7" opacity="0.5"/><line x1="14" y1="120" x2="24" y2="120" stroke="#3b82f6" stroke-width="0.7" opacity="0.5"/>
                         </g>
-                        <!-- Badge on chest -->
-                        <rect x="48" y="85" width="44" height="14" rx="3" fill="rgba(6,182,212,0.2)" stroke="#06b6d4" stroke-width="0.8"/>
-                        <text x="70" y="95" text-anchor="middle" font-size="5.5" fill="#06b6d4" font-family="sans-serif" font-weight="bold">ADVISOR</text>
+                        <!-- Badge ADVISOR -->
+                        <rect x="48" y="85" width="44" height="14" rx="3" fill="rgba(59,130,246,0.2)" stroke="#3b82f6" stroke-width="0.8"/>
+                        <text x="70" y="95" text-anchor="middle" font-size="5.5" fill="#3b82f6" font-family="sans-serif" font-weight="bold">ADVISOR</text>
+                        <!-- Legs -->
                         <path d="M56 133 L53 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="48" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M54 180 L52 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
                         <path d="M84 133 L87 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="80" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M86 180 L88 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
                         <path d="M44 215 L62 215 L63 224 L43 224 Z" fill="#1a1a1a"/><path d="M80 215 L98 215 L99 224 L79 224 Z" fill="#1a1a1a"/>
                     </svg>
                     <span class="cod-char-name">ADVISOR MODE</span>
-                    <!-- Specialist selector -->
                     <select class="cod-mode-select" id="specNameSelect" onclick="event.stopPropagation()">
                         <option value="">Seleziona Advisor...</option>
                     </select>
