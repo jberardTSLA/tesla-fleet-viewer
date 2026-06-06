@@ -194,6 +194,12 @@ function handleFile2Merge(jsonData) {
     const col_financePartner = findCol(['FinancePartner', 'Finance_Partner', 'Finance Partner', 'Financing Partner']);
     const col_orderType = findCol(['OrderType', 'Order_Type', 'Order Type', 'Type']);
     const col_financeStatus = findCol(['FinanceStatus', 'Finance_Status', 'Finance Status', 'LendingStatus', 'Lending_Status', 'Lending Status']);
+    const col_financialSolutionStatus = findCol(['FinancialSolutionStatus', 'Financial_Solution_Status', 'Financial Solution Status']);
+    const col_isFullyPaid = findCol(['IsFullyPaid', 'Is_Fully_Paid', 'Is Fully Paid', 'FullyPaid', 'Fully_Paid']);
+    const col_vehicleMatchType = findCol(['VehicleMatchType', 'Vehicle_Match_Type', 'Vehicle Match Type', 'MatchType', 'Match_Type']);
+    const col_isTradeIn = findCol(['IsTradeIn', 'Is_Trade_In', 'Is Trade In', 'TradeIn', 'Trade_In']);
+    const col_cancelInitDate = findCol(['CancellationInitiateDate', 'Cancellation_Initiate_Date', 'Cancel Date', 'Cancellation Date']);
+    const col_specialNeedsTag = findCol(['SpecialNeedsTagName', 'Special_Needs_Tag', 'SpecialNeeds', 'Special Needs Tag', 'Tags']);
 
     rawData.forEach(row => {
         const rn = row.reservationNumber;
@@ -225,6 +231,12 @@ function handleFile2Merge(jsonData) {
         if (col_financePartner) { row.financePartner = String(f2[col_financePartner]||'').trim(); }
         if (col_orderType) { row.orderType = String(f2[col_orderType]||'').trim(); }
         if (col_financeStatus) { row.financeStatus = String(f2[col_financeStatus]||'').trim(); }
+        if (col_financialSolutionStatus) { row.financialSolutionStatus = String(f2[col_financialSolutionStatus]||'').trim(); }
+        if (col_isFullyPaid) { const v = String(f2[col_isFullyPaid]||'').trim().toLowerCase(); row.isFullyPaid = (v==='true'||v==='1'||v==='yes'); }
+        if (col_vehicleMatchType) { row.vehicleMatchType = String(f2[col_vehicleMatchType]||'').trim(); }
+        if (col_isTradeIn) { const v = String(f2[col_isTradeIn]||'').trim().toLowerCase(); row.isTradeIn = (v==='true'||v==='1'||v==='yes'); }
+        if (col_cancelInitDate) { row.cancelInitDate = parseAnyDate(f2[col_cancelInitDate]); }
+        if (col_specialNeedsTag) { row.specialNeedsTag = String(f2[col_specialNeedsTag]||'').trim(); }
     });
 
     applyFilters();
@@ -485,6 +497,15 @@ function handleFile2(file) {
             const col_paymentStatus = findCol(['FinalPaymentStatus']);
             const col_containment = findCol(['IsContainmenthold']);
             const col_lastLocation = findCol(['LastKnownVehicleLocation']);
+            const col_financePartner2 = findCol(['FinancePartner', 'Finance_Partner', 'Finance Partner', 'Financing Partner']);
+            const col_orderType2 = findCol(['OrderType', 'Order_Type', 'Order Type', 'Type']);
+            const col_financeStatus2 = findCol(['FinanceStatus', 'Finance_Status', 'Finance Status', 'LendingStatus', 'Lending_Status', 'Lending Status']);
+            const col_financialSolutionStatus2 = findCol(['FinancialSolutionStatus', 'Financial_Solution_Status', 'Financial Solution Status']);
+            const col_isFullyPaid2 = findCol(['IsFullyPaid', 'Is_Fully_Paid', 'Is Fully Paid', 'FullyPaid', 'Fully_Paid']);
+            const col_vehicleMatchType2 = findCol(['VehicleMatchType', 'Vehicle_Match_Type', 'Vehicle Match Type', 'MatchType', 'Match_Type']);
+            const col_isTradeIn2 = findCol(['IsTradeIn', 'Is_Trade_In', 'Is Trade In', 'TradeIn', 'Trade_In']);
+            const col_cancelInitDate2 = findCol(['CancellationInitiateDate', 'Cancellation_Initiate_Date', 'Cancel Date', 'Cancellation Date']);
+            const col_specialNeedsTag2 = findCol(['SpecialNeedsTagName', 'Special_Needs_Tag', 'SpecialNeeds', 'Special Needs Tag', 'Tags']);
 
             // Merge into rawData
             let matched = 0;
@@ -547,6 +568,25 @@ function handleFile2(file) {
                 if (col_lastLocation) {
                     row.lastKnownLocation = String(file2Row[col_lastLocation] || '').trim();
                 }
+
+                // FinancePartner
+                if (col_financePartner2) { row.financePartner = String(file2Row[col_financePartner2] || '').trim(); }
+                // OrderType
+                if (col_orderType2) { row.orderType = String(file2Row[col_orderType2] || '').trim(); }
+                // FinanceStatus
+                if (col_financeStatus2) { row.financeStatus = String(file2Row[col_financeStatus2] || '').trim(); }
+                // FinancialSolutionStatus
+                if (col_financialSolutionStatus2) { row.financialSolutionStatus = String(file2Row[col_financialSolutionStatus2] || '').trim(); }
+                // IsFullyPaid
+                if (col_isFullyPaid2) { const v = String(file2Row[col_isFullyPaid2] || '').trim().toLowerCase(); row.isFullyPaid = (v === 'true' || v === '1' || v === 'yes'); }
+                // VehicleMatchType
+                if (col_vehicleMatchType2) { row.vehicleMatchType = String(file2Row[col_vehicleMatchType2] || '').trim(); }
+                // IsTradeIn
+                if (col_isTradeIn2) { const v = String(file2Row[col_isTradeIn2] || '').trim().toLowerCase(); row.isTradeIn = (v === 'true' || v === '1' || v === 'yes'); }
+                // CancelInitDate
+                if (col_cancelInitDate2) { row.cancelInitDate = parseAnyDate(file2Row[col_cancelInitDate2]); }
+                // SpecialNeedsTag
+                if (col_specialNeedsTag2) { row.specialNeedsTag = String(file2Row[col_specialNeedsTag2] || '').trim(); }
             });
 
             // Update status
@@ -597,6 +637,16 @@ function tryAutoMap(headers) {
         matchDate: ['matchdate', 'match_date', 'match date', 'matched date', 'data match'],
         scArrivalDate: ['atservicecenterdate', 'at_service_center_date', 'servicecenterarrivaldate', 'service_center_arrival_date', 'sc arrival date', 'scarrivaldate', 'arrival at sc'],
         fleetReleaseDate: ['fleetreleasedate', 'fleet_release_date', 'fleet release date', 'latestreleasedate', 'latest_fleet_release_date'],
+        orderPlacedDate: ['orderplaceddate', 'order_placed_date', 'order placed date', 'data ordine'],
+        actualDeliveryDate: ['actualdeliverydate', 'actual_delivery_date', 'actual delivery date', 'data consegna effettiva'],
+        vehicleMatchType: ['vehiclematchtype', 'vehicle_match_type', 'vehicle match type', 'matchtype', 'match_type'],
+        isTradeIn: ['istradein', 'is_trade_in', 'is trade in', 'tradein', 'trade_in', 'trade in'],
+        financialSolutionStatus: ['financialsolutionstatus', 'financial_solution_status', 'financial solution status', 'financestatus', 'finance_status', 'finance status', 'lendingstatus', 'lending_status'],
+        isFullyPaid: ['isfullypaid', 'is_fully_paid', 'is fully paid', 'fullypaid', 'fully_paid'],
+        cancelInitDate: ['cancellationinitiatedate', 'cancellation_initiate_date', 'cancel date', 'cancellation date'],
+        smpLink: ['smplink', 'smp_link', 'smp link'],
+        paintName: ['paintname', 'paint_name', 'paint name', 'colore', 'color'],
+        specialNeedsTag: ['specialneedstagname', 'special_needs_tag', 'specialneeds', 'special needs tag', 'tags'],
     };
 
     // Pass 1: exact match (highest priority)
@@ -701,6 +751,18 @@ function processAndRender() {
         const matchDate = columnMap.matchDate ? parseAnyDate(row[columnMap.matchDate]) : null;
         const scArrivalDate = columnMap.scArrivalDate ? parseAnyDate(row[columnMap.scArrivalDate]) : null;
         const fleetReleaseDate = columnMap.fleetReleaseDate ? parseAnyDate(row[columnMap.fleetReleaseDate]) : null;
+        const orderPlacedDate = columnMap.orderPlacedDate ? parseAnyDate(row[columnMap.orderPlacedDate]) : null;
+        const actualDeliveryDate = columnMap.actualDeliveryDate ? parseAnyDate(row[columnMap.actualDeliveryDate]) : null;
+        const vehicleMatchType = columnMap.vehicleMatchType ? String(row[columnMap.vehicleMatchType] || '').trim() : '';
+        const isTradeInVal = columnMap.isTradeIn ? String(row[columnMap.isTradeIn] || '').trim().toLowerCase() : '';
+        const isTradeIn = isTradeInVal ? (isTradeInVal === 'true' || isTradeInVal === '1' || isTradeInVal === 'yes') : null;
+        const isFullyPaidVal = columnMap.isFullyPaid ? String(row[columnMap.isFullyPaid] || '').trim().toLowerCase() : '';
+        const isFullyPaid = isFullyPaidVal ? (isFullyPaidVal === 'true' || isFullyPaidVal === '1' || isFullyPaidVal === 'yes') : null;
+        const cancelInitDate = columnMap.cancelInitDate ? parseAnyDate(row[columnMap.cancelInitDate]) : null;
+        const paintName = columnMap.paintName ? String(row[columnMap.paintName] || '').trim() : '';
+        const specialNeedsTag = columnMap.specialNeedsTag ? String(row[columnMap.specialNeedsTag] || '').trim() : '';
+        const financialSolutionStatus = columnMap.financialSolutionStatus ? String(row[columnMap.financialSolutionStatus] || '').trim() : '';
+        const smpLink = columnMap.smpLink ? String(row[columnMap.smpLink] || '').trim() : '';
         const deliverySpecialist = columnMap.deliverySpecialist ? String(row[columnMap.deliverySpecialist] || '').trim() : '';
 
         // Reservation Number & WDO Link
@@ -755,7 +817,17 @@ function processAndRender() {
             matchDate,
             scArrivalDate,
             fleetReleaseDate,
-            dwell: _calcDwell(dateObj, deliveryDateObj, matchDate, scArrivalDate, fleetReleaseDate),
+            orderPlacedDate,
+            actualDeliveryDate,
+            vehicleMatchType,
+            isTradeIn,
+            isFullyPaid,
+            cancelInitDate,
+            paintName,
+            specialNeedsTag,
+            financialSolutionStatus,
+            smpLink,
+            dwell: _calcDwell(arrivalDate, deliveryDateObj, matchDate, scArrivalDate, fleetReleaseDate, actualDeliveryDate),
             daysUntil,
             urgency,
         };
@@ -949,6 +1021,72 @@ function getRegState(r) {
     return 'unknown';
 }
 
+// ─── Pipeline State ─────────────────────────────────────────
+function getPipelineState(r) {
+    const status = (r.status || '').toLowerCase();
+    if (status.includes('delivered') || status === 'post delivery') return 'delivered';
+    if (r.cancelInitDate) return 'pending_cancel';
+    if (!r.matchDate) return 'unmatched';
+    if (r.matchDate && !r.deliveryDate && !r.isScheduled) return 'matched_not_scheduled';
+    if (r.matchDate && (r.deliveryDate || r.isScheduled)) return 'matched_scheduled';
+    return 'active';
+}
+
+// ─── Alerts Engine ──────────────────────────────────────────
+function getAlerts(r) {
+    const alerts = [];
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // Checkout Incomplete >48h
+    if (r.orderPlacedDate && r.specialNeedsTag) {
+        const opd = new Date(r.orderPlacedDate); opd.setHours(0,0,0,0);
+        const hoursSinceOrder = (today - opd) / 3600000;
+        if (hoursSinceOrder > 48 && !(r.specialNeedsTag || '').toLowerCase().includes('checkout email sent')) {
+            alerts.push({ type: 'checkout_incomplete', text: 'Checkout Incomplete >48h' });
+        }
+    }
+
+    // Car Not On Site: SDD within 3 days but vehicle not at SC
+    if (r.deliveryDate && !isAtHub(r)) {
+        const sdd = new Date(r.deliveryDate); sdd.setHours(0,0,0,0);
+        const daysToSDD = Math.round((sdd - today) / 86400000);
+        if (daysToSDD >= 0 && daysToSDD <= 3) {
+            alerts.push({ type: 'car_not_on_site', text: 'Auto non in hub — consegna tra ' + daysToSDD + 'gg' });
+        }
+    }
+
+    // Missing Fund: not fully paid with SDD imminent
+    if (r.deliveryDate && r.isFullyPaid === false) {
+        const sdd = new Date(r.deliveryDate); sdd.setHours(0,0,0,0);
+        const daysToSDD = Math.round((sdd - today) / 86400000);
+        if (daysToSDD >= 0 && daysToSDD <= 5) {
+            alerts.push({ type: 'missing_fund', text: 'Pagamento incompleto — consegna tra ' + daysToSDD + 'gg' });
+        }
+    }
+
+    // Missing Registration: not completed with SDD imminent
+    if (r.deliveryDate && r.registrationStatus) {
+        const rs = getRegState(r);
+        const sdd = new Date(r.deliveryDate); sdd.setHours(0,0,0,0);
+        const daysToSDD = Math.round((sdd - today) / 86400000);
+        if (daysToSDD >= 0 && daysToSDD <= 5 && rs !== 'completed' && rs !== 'submitted') {
+            alerts.push({ type: 'missing_reg', text: 'Registrazione ' + (r.registrationStatus) + ' — consegna tra ' + daysToSDD + 'gg' });
+        }
+    }
+
+    // Dwell > 5 days
+    if (r.dwell && r.dwell > 5) {
+        alerts.push({ type: 'high_dwell', text: 'Dwell ' + r.dwell + 'gg (>5)' });
+    }
+
+    // Pending cancellation
+    if (r.cancelInitDate) {
+        alerts.push({ type: 'pending_cancel', text: 'Cancellazione avviata' });
+    }
+
+    return alerts;
+}
+
 // Can the vehicle be delivered? Payment + Finance + Registration must be ok
 function isDeliveryReady(r) {
     const ps = (r.finalPaymentStatus || '').trim().toUpperCase();
@@ -963,20 +1101,23 @@ function isDeliveryReady(r) {
 }
 
 // ─── Dwell calculation ──────────────────────────────────────
-// Dwell = giorni di sosta del veicolo prima della consegna
-function _calcDwell(arrivalDate, deliveryDate, matchDate, scArrivalDate, fleetReleaseDate) {
+// OFFICIAL: Dwell = ActualDeliveryDate - MAX(MatchDate, ETA2SC)
+// If not delivered: Dwell = TODAY - MAX(MatchDate, ETA2SC)
+function _calcDwell(arrivalDate, deliveryDate, matchDate, scArrivalDate, fleetReleaseDate, actualDeliveryDate) {
     const today = new Date(); today.setHours(0,0,0,0);
 
-    // Reference start date: max(matchDate, scArrivalDate, arrivalDate)
-    const candidates = [matchDate, scArrivalDate, fleetReleaseDate, arrivalDate].filter(d => d);
+    // Reference start date: MAX(matchDate, arrivalDate/ETA2SC)
+    // arrivalDate here is ETA2SC when available
+    const candidates = [matchDate, arrivalDate].filter(d => d);
     if (candidates.length === 0) return null;
 
     const startDate = new Date(Math.max(...candidates.map(d => new Date(d).getTime())));
     startDate.setHours(0,0,0,0);
 
-    // If delivered, dwell = delivery - start
-    if (deliveryDate) {
-        const del = new Date(deliveryDate); del.setHours(0,0,0,0);
+    // If actually delivered, use actualDeliveryDate
+    const endDate = actualDeliveryDate || deliveryDate;
+    if (endDate) {
+        const del = new Date(endDate); del.setHours(0,0,0,0);
         if (del >= startDate) return Math.round((del - startDate) / 86400000);
     }
 
@@ -1546,6 +1687,13 @@ function renderSpecialistSection() {
             actions.push({ order: r, urgency: 'low', priority: 6,
                 action: 'In arrivo tra ' + r.daysUntil + 'gg', detail: 'Preparare documentazione — arrivo ' + r.dateStr });
         }
+
+        // Alerts engine
+        const alerts = getAlerts(r);
+        alerts.forEach(a => {
+            const urgMap = { checkout_incomplete: 'high', car_not_on_site: 'critical', missing_fund: 'critical', missing_reg: 'high', high_dwell: 'medium', pending_cancel: 'critical' };
+            actions.push({ order: r, urgency: urgMap[a.type] || 'medium', priority: a.type === 'car_not_on_site' || a.type === 'missing_fund' ? 1 : 3, action: a.text, detail: '' });
+        });
     });
 
     // Sort by priority
@@ -1730,6 +1878,13 @@ function renderOpsSection() {
             actions.push({ order: r, urgency: 'low', p: 6, spec,
                 action: 'ARRIVO ' + (r.daysUntil === 0 ? 'OGGI' : 'tra ' + r.daysUntil + 'gg'), detail: 'Preparare bay + documenti', days: r.daysUntil });
         }
+
+        // Alerts engine
+        const opsAlerts = getAlerts(r);
+        opsAlerts.forEach(a => {
+            const urgMap = { checkout_incomplete: 'high', car_not_on_site: 'critical', missing_fund: 'critical', missing_reg: 'high', high_dwell: 'medium', pending_cancel: 'critical' };
+            actions.push({ order: r, urgency: urgMap[a.type] || 'medium', p: a.type === 'car_not_on_site' || a.type === 'missing_fund' ? 1 : 3, spec, action: a.text.toUpperCase(), detail: '', days: daysGround });
+        });
     });
 
     actions.sort((a, b) => a.p - b.p || b.days - a.days);
