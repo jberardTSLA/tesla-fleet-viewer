@@ -593,6 +593,10 @@ function tryAutoMap(headers) {
         model:            ['model', 'modello', 'producttrim', 'product_trim', 'productname', 'veicolo', 'vehicle', 'tipo', 'type', 'prodotto', 'product', 'model name', 'variant', 'trim', 'vehicle model', 'vehicle_model', 'model variant', 'modeltrimname'],
         status:           ['vehiclestatus', 'vehicle_status', 'vehicle status', 'orderstatus', 'order_status', 'order status', 'stato', 'status', 'state', 'situazione', 'condizione', 'delivery status', 'transport status'],
         registrationStatus: ['registrationstatus', 'registration_status', 'registration status', 'reg status', 'stato registrazione', 'stato immatricolazione'],
+        orderSalesType: ['ordersalestype', 'order_sales_type', 'order sales type', 'salestype', 'sales_type', 'sales type', 'ordertype', 'order_type', 'order type'],
+        matchDate: ['matchdate', 'match_date', 'match date', 'matched date', 'data match'],
+        scArrivalDate: ['atservicecenterdate', 'at_service_center_date', 'servicecenterarrivaldate', 'service_center_arrival_date', 'sc arrival date', 'scarrivaldate', 'arrival at sc'],
+        fleetReleaseDate: ['fleetreleasedate', 'fleet_release_date', 'fleet release date', 'latestreleasedate', 'latest_fleet_release_date'],
     };
 
     // Pass 1: exact match (highest priority)
@@ -693,6 +697,10 @@ function processAndRender() {
         const model    = columnMap.model    ? String(row[columnMap.model] || '').trim()     : 'N/A';
         const status   = columnMap.status   ? String(row[columnMap.status] || '').trim()    : 'Programmato';
         const registrationStatus = columnMap.registrationStatus ? String(row[columnMap.registrationStatus] || '').trim() : '';
+        const orderSalesType = columnMap.orderSalesType ? String(row[columnMap.orderSalesType] || '').trim() : '';
+        const matchDate = columnMap.matchDate ? parseAnyDate(row[columnMap.matchDate]) : null;
+        const scArrivalDate = columnMap.scArrivalDate ? parseAnyDate(row[columnMap.scArrivalDate]) : null;
+        const fleetReleaseDate = columnMap.fleetReleaseDate ? parseAnyDate(row[columnMap.fleetReleaseDate]) : null;
         const deliverySpecialist = columnMap.deliverySpecialist ? String(row[columnMap.deliverySpecialist] || '').trim() : '';
 
         // Reservation Number & WDO Link
@@ -743,6 +751,11 @@ function processAndRender() {
             deliverySpecialist,
             status,
             registrationStatus,
+            orderSalesType,
+            matchDate,
+            scArrivalDate,
+            fleetReleaseDate,
+            dwell: _calcDwell(dateObj, deliveryDateObj, matchDate, scArrivalDate, fleetReleaseDate),
             daysUntil,
             urgency,
         };
@@ -947,6 +960,29 @@ function isDeliveryReady(r) {
     const rs = getRegState(r);
     if (rs !== 'unknown' && rs !== 'completed' && rs !== 'submitted') return false;
     return true;
+}
+
+// ─── Dwell calculation ──────────────────────────────────────
+// Dwell = giorni di sosta del veicolo prima della consegna
+function _calcDwell(arrivalDate, deliveryDate, matchDate, scArrivalDate, fleetReleaseDate) {
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // Reference start date: max(matchDate, scArrivalDate, arrivalDate)
+    const candidates = [matchDate, scArrivalDate, fleetReleaseDate, arrivalDate].filter(d => d);
+    if (candidates.length === 0) return null;
+
+    const startDate = new Date(Math.max(...candidates.map(d => new Date(d).getTime())));
+    startDate.setHours(0,0,0,0);
+
+    // If delivered, dwell = delivery - start
+    if (deliveryDate) {
+        const del = new Date(deliveryDate); del.setHours(0,0,0,0);
+        if (del >= startDate) return Math.round((del - startDate) / 86400000);
+    }
+
+    // If not delivered, dwell = today - start (ongoing)
+    if (startDate <= today) return Math.round((today - startDate) / 86400000);
+    return 0;
 }
 
 // ─── Filters ────────────────────────────────────────────────
@@ -1526,12 +1562,17 @@ function renderSpecialistSection() {
         return a && a <= today;
     }).length;
 
+    // Dwell medio
+    const dwellValues = specOrders.filter(r => r.dwell !== null && r.dwell > 0).map(r => r.dwell);
+    const avgDwell = dwellValues.length > 0 ? Math.round(dwellValues.reduce((a,b) => a+b, 0) / dwellValues.length) : 0;
+
     kpiRow.innerHTML = `
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#06b6d4;">${totalOrders}</span><span class="spec-kpi-label">Ordini totali</span></div>
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#ef4444;">${criticalCount}</span><span class="spec-kpi-label">Critici</span></div>
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#f97316;">${highCount}</span><span class="spec-kpi-label">Alta priorità</span></div>
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#eab308;">${mediumCount}</span><span class="spec-kpi-label">Da schedulare</span></div>
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#22c55e;">${groundCount}</span><span class="spec-kpi-label">A terra</span></div>
+        <div class="spec-kpi"><span class="spec-kpi-val" style="color:${avgDwell > 6 ? '#ef4444' : avgDwell > 3 ? '#f97316' : '#3b82f6'};">${avgDwell}</span><span class="spec-kpi-label">Dwell medio (gg)</span></div>
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#3b82f6;">${actions.length}</span><span class="spec-kpi-label">Azioni da fare</span></div>
     `;
 
@@ -1703,6 +1744,15 @@ function renderOpsSection() {
         <div class="ops-kpi ${overdueCount > 0 ? 'ops-kpi-alert' : ''}"><span class="ops-kpi-val" style="color:#ef4444;">${overdueCount}</span><span class="ops-kpi-label">Scaduti &gt;6gg</span></div>
         <div class="ops-kpi ${chCount > 0 ? 'ops-kpi-alert' : ''}"><span class="ops-kpi-val" style="color:#ef4444;">${chCount}</span><span class="ops-kpi-label">Containment Hold</span></div>
         <div class="ops-kpi"><span class="ops-kpi-val" style="color:#f97316;">${payIssueCount}</span><span class="ops-kpi-label">Pagamento NOK</span></div>
+    `;
+
+    // Dwell medio hub
+    const hubDwellVals = locOrders.filter(r => r.dwell !== null && r.dwell > 0).map(r => r.dwell);
+    const hubAvgDwell = hubDwellVals.length > 0 ? Math.round(hubDwellVals.reduce((a,b)=>a+b,0) / hubDwellVals.length) : 0;
+    const hubMaxDwell = hubDwellVals.length > 0 ? Math.max(...hubDwellVals) : 0;
+    document.getElementById('opsKpiGrid').innerHTML += `
+        <div class="ops-kpi ${hubAvgDwell > 6 ? 'ops-kpi-alert' : ''}"><span class="ops-kpi-val" style="color:${hubAvgDwell > 6 ? '#ef4444' : hubAvgDwell > 3 ? '#f97316' : '#06b6d4'};">${hubAvgDwell}</span><span class="ops-kpi-label">Dwell medio (gg)</span></div>
+        <div class="ops-kpi"><span class="ops-kpi-val" style="color:${hubMaxDwell > 10 ? '#ef4444' : '#f97316'};">${hubMaxDwell}</span><span class="ops-kpi-label">Dwell max (gg)</span></div>
     `;
 
     // ── Specialist workload cards ──
