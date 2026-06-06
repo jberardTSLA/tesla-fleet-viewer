@@ -96,89 +96,37 @@
             OVERVIEW ITALIA
         </button>
 
-        <!-- ARENA: two giant busts, half screen each -->
+        <!-- ARENA: fighting game style with real Optimus image -->
         <div class="arena">
             <!-- LEFT: OPS (RED) -->
             <div class="arena-side arena-left" id="char0" onclick="selectRoster(0)">
-                <svg class="arena-bot" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
-                    <ellipse cx="200" cy="80" rx="60" ry="72" fill="#141414" stroke="#222" stroke-width="2"/>
-                    <path d="M155 60 L245 60 L250 80 L248 100 L230 115 L170 115 L152 100 L150 80 Z" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
-                    <path d="M162 68 Q200 50 238 68" stroke="#ef4444" stroke-width="4" fill="none" stroke-linecap="round" class="optimus-led"/>
-                    <path d="M170 75 Q200 62 230 75" stroke="#ef4444" stroke-width="1.5" fill="none" opacity="0.4"/>
-                    <ellipse cx="183" cy="82" rx="8" ry="4" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="0.8"/>
-                    <ellipse cx="217" cy="82" rx="8" ry="4" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="0.8"/>
-                    <rect x="178" y="98" width="44" height="8" rx="2" fill="#222" stroke="#333" stroke-width="0.5"/>
-                    <line x1="190" y1="100" x2="190" y2="104" stroke="#444" stroke-width="0.5"/><line x1="200" y1="100" x2="200" y2="104" stroke="#444" stroke-width="0.5"/><line x1="210" y1="100" x2="210" y2="104" stroke="#444" stroke-width="0.5"/>
-                    <rect x="185" y="148" width="30" height="22" rx="6" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
-                    <path d="M120 172 L280 172 L290 185 L280 192 L120 192 L110 185 Z" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
-                    <path d="M130 192 L270 192 L278 220 Q280 240 276 255 L268 320 L132 320 L124 255 Q120 240 122 220 Z" fill="#d0d0d0" stroke="#aaa" stroke-width="1"/>
-                    <rect x="148" y="205" width="45" height="50" rx="4" fill="#bbb" stroke="#999" stroke-width="0.8"/>
-                    <rect x="207" y="205" width="45" height="50" rx="4" fill="#bbb" stroke="#999" stroke-width="0.8"/>
-                    <line x1="155" y1="215" x2="185" y2="215" stroke="#888" stroke-width="1"/><line x1="155" y1="222" x2="185" y2="222" stroke="#888" stroke-width="1"/><line x1="155" y1="229" x2="185" y2="229" stroke="#888" stroke-width="1"/>
-                    <line x1="215" y1="215" x2="245" y2="215" stroke="#888" stroke-width="1"/><line x1="215" y1="222" x2="245" y2="222" stroke="#888" stroke-width="1"/><line x1="215" y1="229" x2="245" y2="229" stroke="#888" stroke-width="1"/>
-                    <path d="M190 200 L210 200 L215 230 L200 245 L185 230 Z" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="1"/>
-                    <circle cx="200" cy="220" r="5" fill="rgba(239,68,68,0.3)" stroke="#ef4444" stroke-width="1"/>
-                    <line x1="140" y1="270" x2="260" y2="270" stroke="#ef4444" stroke-width="1.5" opacity="0.3"/>
-                    <line x1="142" y1="280" x2="258" y2="280" stroke="#ef4444" stroke-width="1" opacity="0.2"/>
-                    <rect x="138" y="320" width="124" height="28" rx="6" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
-                    <path d="M130 185 L95 195 L70 240 L60 300 L55 350" stroke="#d0d0d0" stroke-width="16" fill="none" stroke-linecap="round"/>
-                    <circle cx="110" cy="195" r="14" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
-                    <rect x="62" y="285" width="18" height="16" rx="4" fill="#1a1a1a"/>
-                    <path d="M55 350 L50 380" stroke="#1a1a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
-                    <ellipse cx="48" cy="388" rx="12" ry="10" fill="#222" stroke="#333" stroke-width="1"/>
-                    <path d="M270 185 L305 195 L330 240 L340 300 L345 350" stroke="#d0d0d0" stroke-width="16" fill="none" stroke-linecap="round"/>
-                    <circle cx="290" cy="195" r="14" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
-                    <rect x="320" y="285" width="18" height="16" rx="4" fill="#1a1a1a"/>
-                    <path d="M345 350 L350 380" stroke="#1a1a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
-                    <ellipse cx="352" cy="388" rx="12" ry="10" fill="#222" stroke="#333" stroke-width="1"/>
-                    <rect x="0" y="400" width="400" height="100" fill="url(#fadeL)"/>
-                    <defs><linearGradient id="fadeL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#030810" stop-opacity="0"/><stop offset="100%" stop-color="#030810"/></linearGradient></defs>
-                </svg>
-                <div class="arena-label">OPS MODE</div>
-                <div class="arena-desc">OPS Coordinator</div>
-                <select class="arena-select" id="opsHubSelect" onclick="event.stopPropagation()"><option value="">Seleziona Hub...</option></select>
+                <div class="arena-bot-img"></div>
+                <div class="arena-color-overlay arena-red-overlay"></div>
+                <div class="arena-info">
+                    <div class="arena-player">PLAYER 1</div>
+                    <div class="arena-label">OPS MODE</div>
+                    <div class="arena-desc">OPS Coordinator</div>
+                    <select class="arena-select" id="opsHubSelect" onclick="event.stopPropagation()"><option value="">Seleziona Hub...</option></select>
+                </div>
             </div>
 
-            <!-- RIGHT: ADVISOR (BLUE, mirrored) -->
+            <!-- CENTER: VS -->
+            <div class="arena-vs">
+                <div class="arena-vs-lightning"></div>
+                <span class="arena-vs-text">VS</span>
+                <div class="arena-vs-lightning arena-vs-lightning-2"></div>
+            </div>
+
+            <!-- RIGHT: ADVISOR (BLUE) -->
             <div class="arena-side arena-right" id="char1" onclick="selectRoster(1)">
-                <svg class="arena-bot" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1);">
-                    <ellipse cx="200" cy="80" rx="60" ry="72" fill="#141414" stroke="#222" stroke-width="2"/>
-                    <path d="M155 60 L245 60 L250 80 L248 100 L230 115 L170 115 L152 100 L150 80 Z" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
-                    <path d="M162 68 Q200 50 238 68" stroke="#3b82f6" stroke-width="4" fill="none" stroke-linecap="round" class="optimus-led"/>
-                    <path d="M170 75 Q200 62 230 75" stroke="#3b82f6" stroke-width="1.5" fill="none" opacity="0.4"/>
-                    <ellipse cx="183" cy="82" rx="8" ry="4" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="0.8"/>
-                    <ellipse cx="217" cy="82" rx="8" ry="4" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="0.8"/>
-                    <line x1="152" y1="65" x2="135" y2="52" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/><circle cx="131" cy="48" r="6" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
-                    <rect x="178" y="98" width="44" height="8" rx="2" fill="#222" stroke="#333" stroke-width="0.5"/>
-                    <line x1="190" y1="100" x2="190" y2="104" stroke="#444" stroke-width="0.5"/><line x1="200" y1="100" x2="200" y2="104" stroke="#444" stroke-width="0.5"/><line x1="210" y1="100" x2="210" y2="104" stroke="#444" stroke-width="0.5"/>
-                    <rect x="185" y="148" width="30" height="22" rx="6" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
-                    <path d="M120 172 L280 172 L290 185 L280 192 L120 192 L110 185 Z" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
-                    <path d="M130 192 L270 192 L278 220 Q280 240 276 255 L268 320 L132 320 L124 255 Q120 240 122 220 Z" fill="#d0d0d0" stroke="#aaa" stroke-width="1"/>
-                    <rect x="148" y="205" width="45" height="50" rx="4" fill="#bbb" stroke="#999" stroke-width="0.8"/>
-                    <rect x="207" y="205" width="45" height="50" rx="4" fill="#bbb" stroke="#999" stroke-width="0.8"/>
-                    <line x1="155" y1="215" x2="185" y2="215" stroke="#888" stroke-width="1"/><line x1="155" y1="222" x2="185" y2="222" stroke="#888" stroke-width="1"/><line x1="155" y1="229" x2="185" y2="229" stroke="#888" stroke-width="1"/>
-                    <line x1="215" y1="215" x2="245" y2="215" stroke="#888" stroke-width="1"/><line x1="215" y1="222" x2="245" y2="222" stroke="#888" stroke-width="1"/><line x1="215" y1="229" x2="245" y2="229" stroke="#888" stroke-width="1"/>
-                    <path d="M190 200 L210 200 L215 230 L200 245 L185 230 Z" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="1"/>
-                    <circle cx="200" cy="220" r="5" fill="rgba(59,130,246,0.3)" stroke="#3b82f6" stroke-width="1"/>
-                    <line x1="140" y1="270" x2="260" y2="270" stroke="#3b82f6" stroke-width="1.5" opacity="0.3"/>
-                    <line x1="142" y1="280" x2="258" y2="280" stroke="#3b82f6" stroke-width="1" opacity="0.2"/>
-                    <rect x="138" y="320" width="124" height="28" rx="6" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
-                    <path d="M130 185 L95 200 L75 250 L65 310" stroke="#d0d0d0" stroke-width="16" fill="none" stroke-linecap="round"/>
-                    <circle cx="110" cy="195" r="14" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
-                    <path d="M65 310 L58 340" stroke="#1a1a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
-                    <rect x="35" y="300" width="35" height="48" rx="4" fill="#0f1f3d" stroke="#3b82f6" stroke-width="1.5"/>
-                    <line x1="42" y1="312" x2="63" y2="312" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/><line x1="42" y1="320" x2="58" y2="320" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/><line x1="42" y1="328" x2="60" y2="328" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/><line x1="42" y1="336" x2="55" y2="336" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/>
-                    <path d="M270 185 L305 195 L330 240 L340 300 L345 350" stroke="#d0d0d0" stroke-width="16" fill="none" stroke-linecap="round"/>
-                    <circle cx="290" cy="195" r="14" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
-                    <rect x="320" y="285" width="18" height="16" rx="4" fill="#1a1a1a"/>
-                    <path d="M345 350 L350 380" stroke="#1a1a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
-                    <ellipse cx="352" cy="388" rx="12" ry="10" fill="#222" stroke="#333" stroke-width="1"/>
-                    <rect x="0" y="400" width="400" height="100" fill="url(#fadeR)"/>
-                    <defs><linearGradient id="fadeR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#030810" stop-opacity="0"/><stop offset="100%" stop-color="#030810"/></linearGradient></defs>
-                </svg>
-                <div class="arena-label">ADVISOR MODE</div>
-                <div class="arena-desc">Delivery Advisor</div>
-                <select class="arena-select" id="specNameSelect" onclick="event.stopPropagation()"><option value="">Seleziona Advisor...</option></select>
+                <div class="arena-bot-img"></div>
+                <div class="arena-color-overlay arena-blue-overlay"></div>
+                <div class="arena-info">
+                    <div class="arena-player">PLAYER 2</div>
+                    <div class="arena-label">ADVISOR MODE</div>
+                    <div class="arena-desc">Delivery Advisor</div>
+                    <select class="arena-select" id="specNameSelect" onclick="event.stopPropagation()"><option value="">Seleziona Advisor...</option></select>
+                </div>
             </div>
         </div>
 
