@@ -1941,6 +1941,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     background-size: contain;
     background-position: center center;
     background-repeat: no-repeat;
+    mix-blend-mode: screen;
+    filter: invert(1);
     opacity: 0.9;
     pointer-events: none;
     z-index: 1;
