@@ -2719,7 +2719,9 @@ function loadDemoData() {
         status: 'Stato',
     };
 
+    bootFile1Loaded = true;
     processAndRender();
+    bootStart();
 }
 
 // ─── Utilities ──────────────────────────────────────────────
