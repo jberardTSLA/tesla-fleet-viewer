@@ -1,0 +1,2295 @@
+/* ============================================================
+   Tesla Fleet Viewer - Main Application Logic
+   ============================================================ */
+
+// ─── Global State ───────────────────────────────────────────
+let rawData = [];              // All parsed rows
+let filteredData = [];         // After filters
+let allHeaders = [];           // Original Excel column names
+let columnMap = {};            // Mapped columns
+let charts = {};               // Chart.js instances
+let currentPage = 1;
+const pageSize = 25;
+let sortCol = 2;               // default sort by date
+let sortAsc = true;
+let readyPage = 1;
+let readyPageSize = 50;
+let paymentPage = 1;
+let paymentPageSize = 50;
+
+// Field keys we need
+const FIELDS = [
+    { key: 'orderId',           label: 'Order ID / VIN' },
+    { key: 'reservationNumber', label: 'Reservation Number' },
+    { key: 'wdoCheckoutLink',   label: 'WDO Checkout Link' },
+    { key: 'location',          label: 'Hub / Location' },
+    { key: 'date',              label: 'Data Arrivo' },
+    { key: 'deliveryDate',      label: 'Data Consegna' },
+    { key: 'model',             label: 'Modello' },
+    { key: 'status',            label: 'Stato' },
+];
+
+// Colors palette for charts
+const CHART_COLORS = [
+    '#3b82f6', '#06b6d4', '#22c55e', '#eab308', '#f97316',
+    '#a855f7', '#ec4899', '#14b8a6', '#6366f1', '#f43f5e',
+    '#84cc16', '#0ea5e9', '#d946ef', '#fb923c', '#2dd4bf',
+];
+
+// ─── BOOT SCREEN (PS2 Style) ────────────────────────────────
+let bootFile1Loaded = false;
+let bootFile2Loaded = false;
+
+// Generate floating particles
+(function() {
+    const container = document.getElementById('bootParticles');
+    if (!container) return;
+    for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'boot-particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDuration = (4 + Math.random() * 6) + 's';
+        p.style.animationDelay = Math.random() * 8 + 's';
+        p.style.opacity = (0.2 + Math.random() * 0.5);
+        p.style.width = p.style.height = (1 + Math.random() * 3) + 'px';
+        const colors = ['#3b82f6', '#06b6d4', '#22c55e', '#a855f7'];
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        container.appendChild(p);
+    }
+})();
+
+// Boot file handlers
+document.addEventListener('DOMContentLoaded', () => {
+    const bf1 = document.getElementById('bootFile1');
+    const bf2 = document.getElementById('bootFile2');
+    if (bf1) bf1.addEventListener('change', e => { if (e.target.files.length) handleBootFile(e.target.files[0], 1); });
+    if (bf2) bf2.addEventListener('change', e => { if (e.target.files.length) handleBootFile(e.target.files[0], 2); });
+});
+
+function handleBootFile(file, slot) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const firstSheet = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheet];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+            if (jsonData.length === 0) {
+                alert('Il file non contiene dati.');
+                return;
+            }
+
+            if (slot === 1) {
+                // Main file
+                allHeaders = Object.keys(jsonData[0]);
+                rawData = jsonData;
+                const autoMapped = tryAutoMap(allHeaders);
+                if (autoMapped) {
+                    columnMap = autoMapped;
+                } else {
+                    columnMap = {};
+                    // Will show mapping after boot
+                }
+                bootFile1Loaded = true;
+                const slotEl = document.getElementById('bootSlot1');
+                slotEl.classList.add('loaded');
+                document.getElementById('bootDesc1').textContent = jsonData.length + ' ordini caricati';
+                document.getElementById('bootAction1').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 10l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>CARICATO</span>';
+                if (window.gsapFileLoaded) gsapFileLoaded(slotEl);
+            } else {
+                // Secondary file — store for later merge
+                window._bootFile2Data = jsonData;
+                bootFile2Loaded = true;
+                const slotEl = document.getElementById('bootSlot2');
+                slotEl.classList.add('loaded');
+                document.getElementById('bootDesc2').textContent = jsonData.length + ' righe caricate';
+                document.getElementById('bootAction2').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 10l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>CARICATO</span>';
+                if (window.gsapFileLoaded) gsapFileLoaded(slotEl);
+                // Unlock Bravo
+                OPTIMUS_DATA[1].locked = false;
+                const lockBadge = document.getElementById('charLock1');
+                if (lockBadge) lockBadge.style.display = 'none';
+            }
+
+            updateBootButton();
+        } catch(err) {
+            alert('Errore nel parsing: ' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function updateBootButton() {
+    const btn = document.getElementById('bootStartBtn');
+    const text = document.getElementById('bootInsertText');
+    if (bootFile1Loaded) {
+        btn.disabled = false;
+        btn.querySelector('.boot-start-text').textContent = 'INIZIALIZZARE SISTEMA';
+        text.textContent = 'Sistema pronto. Premi per continuare.';
+        text.style.color = '#22c55e';
+    }
+}
+
+function bootStart() {
+    if (!bootFile1Loaded) return;
+
+    // Process File 1
+    processAndRender();
+
+    // Process File 2 if loaded
+    if (bootFile2Loaded && window._bootFile2Data) {
+        rawData_backup = rawData;
+        handleFile2Merge(window._bootFile2Data);
+    }
+
+    // Transition: boot → optimus selection (GSAP if available)
+    if (window.gsapBootToOptimus) {
+        gsapBootToOptimus(() => {
+            document.getElementById('bootScreen').style.display = 'none';
+            document.getElementById('optimusIntro').style.display = 'flex';
+            if (window.gsapOptimus) gsapOptimus();
+        });
+    } else {
+        const boot = document.getElementById('bootScreen');
+        boot.classList.add('booting');
+        setTimeout(() => {
+            boot.style.display = 'none';
+            document.getElementById('optimusIntro').style.display = 'flex';
+        }, 1200);
+    }
+}
+
+function handleFile2Merge(jsonData) {
+    const file2Headers = Object.keys(jsonData[0]);
+    const rnCol = file2Headers.find(h => h.toLowerCase().replace(/[_\s]/g,'') === 'referencenumber') || null;
+    if (!rnCol) return;
+
+    const lookup = {};
+    jsonData.forEach(row => {
+        const rn = String(row[rnCol] || '').trim();
+        if (rn) lookup[rn] = row;
+    });
+
+    const findCol = (names) => {
+        for (const n of names) {
+            const found = file2Headers.find(h => h.toLowerCase().replace(/[_\s]/g,'') === n.toLowerCase().replace(/[_\s]/g,''));
+            if (found) return found;
+        }
+        return null;
+    };
+
+    const col_eta2sc = findCol(['ETA2SC']);
+    const col_enterprise = findCol(['IsEnterpriseOrder']);
+    const col_confidentEta = findCol(['IsConfidentETA']);
+    const col_scheduled = findCol(['IsScheduled']);
+    const col_paymentStatus = findCol(['FinalPaymentStatus']);
+    const col_containment = findCol(['IsContainmenthold']);
+    const col_lastLocation = findCol(['LastKnownVehicleLocation']);
+
+    rawData.forEach(row => {
+        const rn = row.reservationNumber;
+        if (!rn || !lookup[rn]) return;
+        const f2 = lookup[rn];
+
+        if (col_eta2sc) {
+            const eta = parseAnyDate(f2[col_eta2sc]);
+            if (eta) {
+                row.date = eta;
+                row.dateStr = eta.toLocaleDateString('it-IT');
+                const refDate = row.deliveryDate || row.date;
+                const today = new Date(); today.setHours(0,0,0,0);
+                const refClean = new Date(refDate); refClean.setHours(0,0,0,0);
+                row.daysUntil = Math.round((refClean - today) / 86400000);
+                if (row.daysUntil < 0) row.urgency = 'past';
+                else if (row.daysUntil === 0) row.urgency = 'today';
+                else if (row.daysUntil <= 2) row.urgency = 'imminent';
+                else if (row.daysUntil <= 5) row.urgency = 'soon';
+                else row.urgency = 'none';
+            }
+        }
+        if (col_enterprise) { const v = String(f2[col_enterprise]||'').trim().toLowerCase(); row.isEnterprise = (v==='true'||v==='1'||v==='yes'); row.orderChannel = row.isEnterprise ? 'B2B' : 'B2C'; }
+        if (col_confidentEta) { const v = String(f2[col_confidentEta]||'').trim().toLowerCase(); row.isConfidentETA = (v==='true'||v==='1'||v==='yes'); }
+        if (col_scheduled) { const v = String(f2[col_scheduled]||'').trim().toLowerCase(); row.isScheduled = (v==='true'||v==='1'||v==='yes'); }
+        if (col_paymentStatus) { row.finalPaymentStatus = String(f2[col_paymentStatus]||'').trim(); }
+        if (col_containment) { const v = String(f2[col_containment]||'').trim().toLowerCase(); row.isContainmentHold = (v==='true'||v==='1'||v==='yes'); }
+        if (col_lastLocation) { row.lastKnownLocation = String(f2[col_lastLocation]||'').trim(); }
+    });
+
+    applyFilters();
+}
+
+// ─── OPTIMUS INTRO (CoD Style) ──────────────────────────────
+const OPTIMUS_DATA = [
+    { id: 'arrivals', name: 'OPTIMUS ALPHA', classType: 'LOGISTICS COMMAND', color: '#3b82f6',
+      skill1: 'MONITOR ARRIVI', desc1: 'Traccia tutti gli arrivi in tempo reale sugli hub Italia',
+      skill2: 'TIMELINE VIEW', desc2: 'Visualizza la timeline dei prossimi 30 giorni con volumi',
+      requires: 'File 1', locked: false },
+    { id: 'ready', name: 'OPTIMUS BRAVO', classType: 'DELIVERY OPS', color: '#22c55e',
+      skill1: 'CONSEGNE PRONTE', desc1: 'Identifica veicoli a terra con pagamento completo e KPI 6 giorni',
+      skill2: 'GROUND CONTROL', desc2: 'Monitoraggio giorni a terra, scheduling e scadenze',
+      requires: 'File 2', locked: true },
+    { id: 'alerts', name: 'OPTIMUS CHARLIE', classType: 'THREAT DETECTION', color: '#ef4444',
+      skill1: 'CONTAINMENT SCAN', desc1: 'Rileva veicoli con CH attivo e blocchi critici',
+      skill2: 'DELAY ALERT', desc2: 'Segnala ordini da posticipare e consegne in conflitto',
+      requires: 'File 1', locked: false },
+    { id: 'analytics', name: 'OPTIMUS DELTA', classType: 'INTEL ANALYSIS', color: '#a855f7',
+      skill1: 'PIVOT MATRIX', desc1: 'Analisi volumi per Location e Modello con totali',
+      skill2: 'FLEET INTEL', desc2: 'Grafici B2B/B2C, distribuzione modelli, stato ordini',
+      requires: 'File 1', locked: false },
+];
+
+let selectedRoster = 0;
+
+function selectRoster(idx) {
+    selectedRoster = idx;
+    const d = OPTIMUS_DATA[idx];
+
+    // Update character highlights
+    document.querySelectorAll('.cod-char').forEach((c, i) => {
+        c.classList.toggle('active', i === idx);
+    });
+
+    // GSAP switch animation
+    if (window.gsapSwitchChar) gsapSwitchChar(idx);
+
+    // Update info bar
+    document.getElementById('codInfoName').textContent = d.name;
+    document.getElementById('codInfoDesc').textContent = d.classType;
+    document.getElementById('codMiniSkill1').textContent = d.skill1;
+    document.getElementById('codMiniSkill2').textContent = d.skill2;
+
+    // Deploy button state
+    const btn = document.getElementById('codDeployBtn');
+    const req = document.getElementById('codReq');
+    if (d.locked) {
+        btn.classList.add('locked');
+        req.textContent = 'RICHIEDE ' + d.requires + ' — Carica i dati per attivare questo operativo';
+    } else {
+        btn.classList.remove('locked');
+        req.textContent = '';
+    }
+}
+
+function deployOptimus() {
+    const d = OPTIMUS_DATA[selectedRoster];
+    if (d.locked) return;
+    selectOptimus(d.id);
+}
+
+function selectOptimus(section) {
+    const intro = document.getElementById('optimusIntro');
+
+    const afterClose = () => {
+        intro.style.display = 'none';
+        // Dashboard reveal with GSAP
+        if (window.gsapDashboardReveal) gsapDashboardReveal();
+        if (document.getElementById('dashboard').style.display !== 'none') {
+            let targetId = null;
+            switch(section) {
+                case 'arrivals': targetId = 'arrivalsTable'; break;
+                case 'ready': targetId = 'readySection'; break;
+                case 'alerts': targetId = 'postponeSection'; break;
+                case 'analytics': targetId = 'chartByLocation'; break;
+            }
+            if (targetId) {
+                const el = document.getElementById(targetId);
+                if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 600);
+            }
+        }
+    };
+
+    if (window.gsapDeploy) {
+        gsapDeploy(afterClose);
+    } else {
+        intro.classList.add('closing');
+        setTimeout(afterClose, 800);
+    }
+}
+
+function skipIntro() {
+    const intro = document.getElementById('optimusIntro');
+    intro.classList.add('closing');
+    setTimeout(() => { intro.style.display = 'none'; }, 800);
+}
+
+// Init first selection
+setTimeout(() => selectRoster(0), 100);
+
+// ─── Initialize ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    // Set current date
+    const now = new Date();
+    document.getElementById('currentDate').textContent =
+        now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Set default filter dates
+    const today = now.toISOString().split('T')[0];
+    // Don't set default date filter - show all data
+    // document.getElementById('filterDateFrom').value = today;
+
+    // File input listener
+    document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+    // Second file input listener
+    document.getElementById('fileInput2').addEventListener('change', handleFile2Select);
+
+    // Drag & drop
+    const uploadCard = document.querySelector('.upload-card');
+    uploadCard.addEventListener('dragover', e => {
+        e.preventDefault();
+        uploadCard.classList.add('drag-over');
+    });
+    uploadCard.addEventListener('dragleave', () => {
+        uploadCard.classList.remove('drag-over');
+    });
+    uploadCard.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadCard.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+});
+
+// ─── File Handling ──────────────────────────────────────────
+function handleFileSelect(e) {
+    if (e.target.files.length) {
+        handleFile(e.target.files[0]);
+    }
+}
+
+function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const firstSheet = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheet];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+            if (jsonData.length === 0) {
+                alert('Il file non contiene dati.');
+                return;
+            }
+
+            allHeaders = Object.keys(jsonData[0]);
+            rawData = jsonData;
+
+            // Try auto-mapping
+            const autoMapped = tryAutoMap(allHeaders);
+            if (autoMapped) {
+                columnMap = autoMapped;
+                processAndRender();
+            } else {
+                showColumnMapping();
+            }
+        } catch (err) {
+            alert('Errore nel parsing del file: ' + err.message);
+            console.error(err);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// ─── Second File Handling (Merge) ───────────────────────────
+function handleFile2Select(e) {
+    if (e.target.files.length) {
+        handleFile2(e.target.files[0]);
+    }
+}
+
+function handleFile2(file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const firstSheet = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheet];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+            if (jsonData.length === 0) {
+                alert('Il secondo file non contiene dati.');
+                return;
+            }
+
+            // Find ReferenceNumber column in file 2
+            const file2Headers = Object.keys(jsonData[0]);
+            const rnCol = file2Headers.find(h => h.toLowerCase().replace(/[_\s]/g,'') === 'referencenumber') || null;
+
+            if (!rnCol) {
+                alert('Colonna "ReferenceNumber" non trovata nel secondo file. Impossibile incrociare i dati.');
+                return;
+            }
+
+            // Build lookup by ReferenceNumber
+            const lookup = {};
+            jsonData.forEach(row => {
+                const rn = String(row[rnCol] || '').trim();
+                if (rn) lookup[rn] = row;
+            });
+
+            // Find columns in file 2
+            const findCol = (names) => {
+                for (const n of names) {
+                    const found = file2Headers.find(h => h.toLowerCase().replace(/[_\s]/g,'') === n.toLowerCase().replace(/[_\s]/g,''));
+                    if (found) return found;
+                }
+                return null;
+            };
+
+            const col_eta2sc = findCol(['ETA2SC']);
+            const col_enterprise = findCol(['IsEnterpriseOrder']);
+            const col_confidentEta = findCol(['IsConfidentETA']);
+            const col_scheduled = findCol(['IsScheduled']);
+            const col_paymentStatus = findCol(['FinalPaymentStatus']);
+            const col_containment = findCol(['IsContainmenthold']);
+            const col_lastLocation = findCol(['LastKnownVehicleLocation']);
+
+            // Merge into rawData
+            let matched = 0;
+            rawData.forEach(row => {
+                const rn = row.reservationNumber;
+                if (!rn || !lookup[rn]) return;
+                const file2Row = lookup[rn];
+                matched++;
+
+                // ETA2SC overrides arrival date
+                if (col_eta2sc) {
+                    const eta2sc = parseAnyDate(file2Row[col_eta2sc]);
+                    if (eta2sc) {
+                        row.date = eta2sc;
+                        row.dateStr = eta2sc.toLocaleDateString('it-IT');
+                        // Recalculate urgency
+                        const refDate = row.deliveryDate || row.date;
+                        const today = new Date(); today.setHours(0,0,0,0);
+                        const refClean = new Date(refDate); refClean.setHours(0,0,0,0);
+                        row.daysUntil = Math.round((refClean - today) / 86400000);
+                        if (row.daysUntil < 0) row.urgency = 'past';
+                        else if (row.daysUntil === 0) row.urgency = 'today';
+                        else if (row.daysUntil <= 2) row.urgency = 'imminent';
+                        else if (row.daysUntil <= 5) row.urgency = 'soon';
+                        else row.urgency = 'none';
+                    }
+                }
+
+                // IsEnterpriseOrder
+                if (col_enterprise) {
+                    const val = String(file2Row[col_enterprise] || '').trim().toLowerCase();
+                    row.isEnterprise = (val === 'true' || val === '1' || val === 'yes');
+                    row.orderChannel = row.isEnterprise ? 'B2B' : 'B2C';
+                }
+
+                // IsConfidentETA
+                if (col_confidentEta) {
+                    const val = String(file2Row[col_confidentEta] || '').trim().toLowerCase();
+                    row.isConfidentETA = (val === 'true' || val === '1' || val === 'yes');
+                }
+
+                // IsScheduled
+                if (col_scheduled) {
+                    const val = String(file2Row[col_scheduled] || '').trim().toLowerCase();
+                    row.isScheduled = (val === 'true' || val === '1' || val === 'yes');
+                }
+
+                // FinalPaymentStatus
+                if (col_paymentStatus) {
+                    row.finalPaymentStatus = String(file2Row[col_paymentStatus] || '').trim();
+                }
+
+                // IsContainmenthold
+                if (col_containment) {
+                    const val = String(file2Row[col_containment] || '').trim().toLowerCase();
+                    row.isContainmentHold = (val === 'true' || val === '1' || val === 'yes');
+                }
+
+                // LastKnownVehicleLocation
+                if (col_lastLocation) {
+                    row.lastKnownLocation = String(file2Row[col_lastLocation] || '').trim();
+                }
+            });
+
+            // Update status
+            const statusEl = document.getElementById('dataStatus');
+            statusEl.innerHTML = '<span class="status-dot"></span><span>' + rawData.length + ' ordini | File 2 integrato (' + matched + ' match)</span>';
+
+            // Update button
+            const btn = document.getElementById('btnFile2');
+            btn.style.background = 'rgba(34,197,94,0.1)';
+            btn.style.color = '#22c55e';
+            btn.style.borderColor = 'rgba(34,197,94,0.2)';
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 8L7 11L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> File 2 OK (' + matched + ')';
+
+            // Unlock BRAVO in roster
+            OPTIMUS_DATA[1].locked = false;
+            const lockBadge = document.getElementById('charLock1');
+            if (lockBadge) lockBadge.style.display = 'none';
+
+            // Re-render
+            applyFilters();
+            alert('File 2 integrato! ' + matched + ' ordini incrociati su ' + jsonData.length + ' righe.');
+
+        } catch (err) {
+            alert('Errore nel parsing del secondo file: ' + err.message);
+            console.error(err);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// ─── Auto-mapping heuristics ────────────────────────────────
+function tryAutoMap(headers) {
+    const map = {};
+    const lowerHeaders = headers.map(h => h.toString().toLowerCase().trim());
+
+    const patterns = {
+        orderId:          ['vin', 'order id', 'orderid', 'order_id', 'id ordine', 'ordine', 'vin number', 'vehicle identification', 'telaio', 'chassis'],
+        reservationNumber:['referencenumber', 'reference number', 'reference_number', 'reservation number', 'reservation_number', 'reservationnumber', 'reservation #', 'prenotazione', 'numero prenotazione', 'numero reservation'],
+        wdoCheckoutLink:  ['wdocheckoutlink', 'wdo checkout link', 'wdo_checkout_link', 'wdo link', 'wdo_link', 'checkout link', 'checkout_link', 'wdo checkout', 'wdo url'],
+        location:         ['servicecenterforpickup', 'service center for pick up', 'service_center_for_pickup', 'location', 'hub', 'destinazione', 'sede', 'centro', 'magazzino', 'warehouse', 'site', 'plant', 'stabilimento', 'porto', 'port', 'compound', 'delivery location', 'delivery_location', 'service center', 'sc location', 'storelocation', 'store_location'],
+        deliverySpecialist: ['deliveryspecialist', 'delivery_specialist', 'delivery specialist', 'specialist', 'sales advisor', 'salesadvisor', 'advisor'],
+        date:             ['vehicleetatoservice', 'vehicle eta to service', 'vehicleeta', 'carrier_eta', 'eta2servicecenter', 'data arrivo', 'arrival date', 'arrival', 'eta', 'data_arrivo', 'arrivo', 'estimated arrival', 'estimated_arrival', 'planned arrival', 'eta date', 'carrier eta', 'scheduled date'],
+        deliveryDate:     ['scheduleddeliverydate', 'scheduled delivery date', 'scheduled_delivery_date', 'data consegna', 'delivery date', 'delivery_date', 'consegna', 'data di consegna', 'scheduled delivery', 'data delivery', 'planned delivery', 'customer delivery date', 'handover date', 'handover'],
+        model:            ['model', 'modello', 'producttrim', 'product_trim', 'productname', 'veicolo', 'vehicle', 'tipo', 'type', 'prodotto', 'product', 'model name', 'variant', 'trim', 'vehicle model', 'vehicle_model', 'model variant', 'modeltrimname'],
+        status:           ['vehiclestatus', 'vehicle_status', 'vehicle status', 'orderstatus', 'order_status', 'order status', 'registrationstatus', 'registration_status', 'stato', 'status', 'state', 'situazione', 'condizione', 'delivery status', 'transport status'],
+    };
+
+    // Pass 1: exact match (highest priority)
+    for (const [key, terms] of Object.entries(patterns)) {
+        if (map[key]) continue;
+        for (let i = 0; i < lowerHeaders.length; i++) {
+            if (Object.values(map).includes(headers[i])) continue; // already used
+            if (terms.some(t => lowerHeaders[i] === t)) {
+                map[key] = headers[i];
+                break;
+            }
+        }
+    }
+
+    // Pass 2: includes match (fallback for partial matches)
+    for (const [key, terms] of Object.entries(patterns)) {
+        if (map[key]) continue;
+        for (let i = 0; i < lowerHeaders.length; i++) {
+            if (Object.values(map).includes(headers[i])) continue; // already used
+            if (terms.some(t => lowerHeaders[i].includes(t))) {
+                map[key] = headers[i];
+                break;
+            }
+        }
+    }
+
+    // Check if we got at least location and date
+    return (map.location && map.date) ? map : null;
+}
+
+// ─── Column Mapping UI ─────────────────────────────────────
+function showColumnMapping() {
+    const mappingDiv = document.getElementById('columnMapping');
+    const grid = document.getElementById('mappingGrid');
+    grid.innerHTML = '';
+
+    FIELDS.forEach(field => {
+        const item = document.createElement('div');
+        item.className = 'mapping-item';
+
+        const label = document.createElement('label');
+        label.textContent = field.label;
+        item.appendChild(label);
+
+        const select = document.createElement('select');
+        select.id = 'map_' + field.key;
+
+        const optNone = document.createElement('option');
+        optNone.value = '';
+        optNone.textContent = '-- Non mappato --';
+        select.appendChild(optNone);
+
+        allHeaders.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h;
+            opt.textContent = h;
+            select.appendChild(opt);
+        });
+
+        // Pre-select if auto-map partial
+        const autoMap = tryAutoMap(allHeaders) || {};
+        if (autoMap[field.key]) {
+            select.value = autoMap[field.key];
+        }
+
+        item.appendChild(select);
+        grid.appendChild(item);
+    });
+
+    mappingDiv.style.display = 'block';
+}
+
+function applyMapping() {
+    columnMap = {};
+    FIELDS.forEach(field => {
+        const val = document.getElementById('map_' + field.key).value;
+        if (val) columnMap[field.key] = val;
+    });
+
+    if (!columnMap.location || !columnMap.date) {
+        alert('Per favore mappa almeno "Hub / Location" e "Data Arrivo".');
+        return;
+    }
+
+    processAndRender();
+}
+
+// ─── Data Processing ────────────────────────────────────────
+function processAndRender() {
+    // Normalize data
+    const processed = rawData.map((row, idx) => {
+        const orderId  = columnMap.orderId  ? String(row[columnMap.orderId] || '').trim()  : 'ORD-' + String(idx + 1).padStart(5, '0');
+        const location = columnMap.location ? String(row[columnMap.location] || '').trim() : 'N/A';
+        const model    = columnMap.model    ? String(row[columnMap.model] || '').trim()     : 'N/A';
+        const status   = columnMap.status   ? String(row[columnMap.status] || '').trim()    : 'Programmato';
+        const deliverySpecialist = columnMap.deliverySpecialist ? String(row[columnMap.deliverySpecialist] || '').trim() : '';
+
+        // Reservation Number & WDO Link
+        // In ZipLabs, WDOCheckoutLink column contains the RN code (e.g. RN127765407), not a URL
+        let reservationNumber = columnMap.reservationNumber ? String(row[columnMap.reservationNumber] || '').trim() : '';
+        const wdoColValue = columnMap.wdoCheckoutLink ? String(row[columnMap.wdoCheckoutLink] || '').trim() : '';
+
+        // If WDOCheckoutLink value looks like an RN code, use it as reservation number
+        if (!reservationNumber && wdoColValue && /^RN\d+$/i.test(wdoColValue)) {
+            reservationNumber = wdoColValue;
+        }
+
+        // Build DRO Advisor link with RN
+        const wdoCheckoutLink = reservationNumber ? 'https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=' + encodeURIComponent(reservationNumber) : '';
+
+        // Parse arrival date
+        let dateObj = parseAnyDate(row[columnMap.date]);
+
+        // Parse delivery date
+        let deliveryDateObj = columnMap.deliveryDate ? parseAnyDate(row[columnMap.deliveryDate]) : null;
+
+        // Calculate urgency based on delivery date (or arrival date as fallback)
+        const refDate = deliveryDateObj || dateObj;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let daysUntil = null;
+        let urgency = 'none'; // none | imminent | today | soon
+        if (refDate) {
+            const refClean = new Date(refDate);
+            refClean.setHours(0, 0, 0, 0);
+            daysUntil = Math.round((refClean - today) / 86400000);
+            if (daysUntil < 0)       urgency = 'past';
+            else if (daysUntil === 0) urgency = 'today';
+            else if (daysUntil <= 2)  urgency = 'imminent';  // 1-2 days -> flashing orange
+            else if (daysUntil <= 5)  urgency = 'soon';      // 3-5 days -> soft warning
+        }
+
+        return {
+            orderId,
+            reservationNumber,
+            wdoCheckoutLink,
+            location,
+            date: dateObj,
+            dateStr: dateObj ? dateObj.toLocaleDateString('it-IT') : 'N/A',
+            deliveryDate: deliveryDateObj,
+            deliveryDateStr: deliveryDateObj ? deliveryDateObj.toLocaleDateString('it-IT') : '—',
+            model,
+            deliverySpecialist,
+            status,
+            daysUntil,
+            urgency,
+        };
+    }).filter(r => r.date !== null); // Remove rows with no valid date
+
+    rawData = processed; // Overwrite with normalized
+    applyFilters();
+
+    // Show dashboard
+    document.getElementById('dashboard').style.display = 'block';
+
+    // Update header status
+    const statusEl = document.getElementById('dataStatus');
+    statusEl.className = 'header-status active';
+    statusEl.innerHTML = '<span class="status-dot"></span><span>' + rawData.length + ' ordini caricati</span>';
+}
+
+function parseAnyDate(dateVal) {
+    if (!dateVal) return null;
+    if (dateVal instanceof Date) return dateVal;
+    if (typeof dateVal === 'number') {
+        // Excel serial date
+        return new Date((dateVal - 25569) * 86400 * 1000);
+    }
+    if (typeof dateVal === 'string' && dateVal.trim()) {
+        return parseDateString(dateVal.trim());
+    }
+    return null;
+}
+
+function parseDateString(str) {
+    // Try common formats
+    // dd/mm/yyyy  dd-mm-yyyy  dd.mm.yyyy
+    let m = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+    if (m) {
+        let day = parseInt(m[1]);
+        let month = parseInt(m[2]) - 1;
+        let year = parseInt(m[3]);
+        if (year < 100) year += 2000;
+        // If day > 12 its definitely dd/mm, else try dd/mm first (Italian)
+        return new Date(year, month, day);
+    }
+    // yyyy-mm-dd
+    m = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (m) {
+        return new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+    }
+    // Fallback
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+// ─── Filters ────────────────────────────────────────────────
+function applyFilters() {
+    const locFilter = document.getElementById('filterLocation').value;
+    const statusFilter = document.getElementById('filterStatus').value;
+    const modelFilter = document.getElementById('filterModel').value;
+    const enterpriseFilter = document.getElementById('filterEnterprise').value;
+    const specialistEl = document.getElementById('filterSpecialist');
+    const specialistFilter = specialistEl ? specialistEl.value : 'all';
+    const dateFrom = document.getElementById('filterDateFrom').value ? new Date(document.getElementById('filterDateFrom').value) : null;
+    const dateTo = document.getElementById('filterDateTo').value ? new Date(document.getElementById('filterDateTo').value + 'T23:59:59') : null;
+
+    filteredData = rawData.filter(row => {
+        if (locFilter !== 'all' && row.location !== locFilter) return false;
+        if (statusFilter !== 'all' && row.status !== statusFilter) return false;
+        if (modelFilter !== 'all' && row.model !== modelFilter) return false;
+        if (specialistFilter !== 'all' && (row.deliverySpecialist || '') !== specialistFilter) return false;
+        if (enterpriseFilter !== 'all') {
+            if (enterpriseFilter === 'B2B' && !row.isEnterprise) return false;
+            if (enterpriseFilter === 'B2C' && row.isEnterprise) return false;
+        }
+        if (dateFrom && row.date < dateFrom) return false;
+        if (dateTo && row.date > dateTo) return false;
+        return true;
+    });
+
+    currentPage = 1;
+    populateFilterDropdowns();
+    updateKPIs();
+    renderCharts();
+    renderPivotTable();
+    renderReadySection();
+    renderPostponeTable();
+    renderArrivalsTable();
+    renderLocationCards();
+}
+
+function resetFilters() {
+    document.getElementById('filterLocation').value = 'all';
+    document.getElementById('filterStatus').value = 'all';
+    document.getElementById('filterModel').value = 'all';
+    if (document.getElementById('filterSpecialist')) document.getElementById('filterSpecialist').value = 'all';
+    document.getElementById('filterEnterprise').value = 'all';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    applyFilters();
+}
+
+function populateFilterDropdowns() {
+    populateSelect('filterLocation', [...new Set(rawData.map(r => r.location))].sort());
+    populateSelect('filterStatus', [...new Set(rawData.map(r => r.status))].sort());
+    populateSelect('filterModel', [...new Set(rawData.map(r => r.model))].sort());
+    const specialists = [...new Set(rawData.map(r => r.deliverySpecialist).filter(s => s && s.length > 0))].sort();
+    if (document.getElementById('filterSpecialist')) populateSelect('filterSpecialist', specialists);
+}
+
+function populateSelect(id, options) {
+    const sel = document.getElementById(id);
+    const current = sel.value;
+    const firstOpt = sel.options[0];
+    sel.innerHTML = '';
+    sel.appendChild(firstOpt);
+    options.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt;
+        sel.appendChild(o);
+    });
+    sel.value = current; // restore selection
+}
+
+// ─── KPIs ───────────────────────────────────────────────────
+function updateKPIs() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+    const next2 = new Date(today);
+    next2.setDate(next2.getDate() + 2);
+    next2.setHours(23, 59, 59, 999);
+    const next7 = new Date(today);
+    next7.setDate(next7.getDate() + 7);
+
+    // Use delivery date if available, otherwise arrival date
+    const getRefDate = r => r.deliveryDate || r.date;
+
+    const todayDeliveries = filteredData.filter(r => { const d = getRefDate(r); return d >= today && d <= todayEnd; });
+    const imminentOrders = filteredData.filter(r => r.urgency === 'imminent' || r.urgency === 'today');
+    const upcoming = filteredData.filter(r => { const d = getRefDate(r); return d >= today && d <= next7; });
+    const locations = new Set(filteredData.map(r => r.location));
+
+    animateCounter('kpiTotal', filteredData.length);
+    animateCounter('kpiToday', todayDeliveries.length);
+    animateCounter('kpiImminent', imminentOrders.length);
+    animateCounter('kpiUpcoming', upcoming.length);
+    animateCounter('kpiLocations', locations.size);
+
+    // Ground > 6 days KPI
+    const groundOver6 = filteredData.filter(r => {
+        if (!r.date) return false;
+        const arrival = new Date(r.date); arrival.setHours(0,0,0,0);
+        if (arrival > today) return false; // not arrived yet
+        const daysOnGround = Math.round((today - arrival) / 86400000);
+        return daysOnGround > 6;
+    });
+    animateCounter('kpiGround', groundOver6.length);
+
+    // Flash ground KPI if there are overdue vehicles
+    const groundCard = document.getElementById('kpiGroundCard');
+    if (groundOver6.length > 0) {
+        groundCard.classList.add('flashing');
+    } else {
+        groundCard.classList.remove('flashing');
+    }
+
+    // Activate flashing if there are imminent orders
+    const imminentCard = document.getElementById('kpiImminentCard');
+    if (imminentOrders.length > 0) {
+        imminentCard.classList.add('flashing');
+    } else {
+        imminentCard.classList.remove('flashing');
+    }
+}
+
+function animateCounter(id, target) {
+    const el = document.getElementById(id);
+    const start = parseInt(el.textContent) || 0;
+    const duration = 600;
+    const startTime = performance.now();
+
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(start + (target - start) * eased).toLocaleString('it-IT');
+        if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+}
+
+// ─── Charts ─────────────────────────────────────────────────
+function renderCharts() {
+    renderPieChart('chartByLocation', groupBy(filteredData, 'location'), 'Volumi per Hub');
+    renderPieChart('chartByModel', groupBy(filteredData, 'model'), 'Distribuzione per Modello');
+    renderPieChart('chartByStatus', groupBy(filteredData, 'status'), 'Stato Ordini');
+    renderTimelineChart();
+}
+
+function groupBy(data, key) {
+    const groups = {};
+    data.forEach(row => {
+        const k = row[key] || 'N/A';
+        groups[k] = (groups[k] || 0) + 1;
+    });
+    return groups;
+}
+
+function renderPieChart(canvasId, dataObj, title) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+
+    // Destroy existing
+    if (charts[canvasId]) {
+        charts[canvasId].destroy();
+    }
+
+    const labels = Object.keys(dataObj);
+    const values = Object.values(dataObj);
+
+    charts[canvasId] = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: CHART_COLORS.slice(0, labels.length),
+                borderColor: 'rgba(10, 22, 40, 0.8)',
+                borderWidth: 2,
+                hoverBorderWidth: 3,
+                hoverBorderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '55%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#8ba3c7',
+                        font: { size: 11, family: 'Inter' },
+                        padding: 12,
+                        usePointStyle: true,
+                        pointStyleWidth: 8,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 22, 40, 0.95)',
+                    titleColor: '#e8edf5',
+                    bodyColor: '#8ba3c7',
+                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                    borderWidth: 1,
+                    padding: 12,
+                    titleFont: { family: 'Inter', weight: 600 },
+                    bodyFont: { family: 'Inter' },
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = ((context.parsed / total) * 100).toFixed(1);
+                            return ` ${context.label}: ${context.parsed.toLocaleString('it-IT')} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 800,
+            }
+        }
+    });
+}
+
+function renderTimelineChart() {
+    const ctx = document.getElementById('chartTimeline').getContext('2d');
+    if (charts['chartTimeline']) charts['chartTimeline'].destroy();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Group by date for next 30 days
+    const dayMap = {};
+    for (let i = 0; i < 30; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + i);
+        const key = d.toISOString().split('T')[0];
+        dayMap[key] = { date: d, total: 0 };
+    }
+
+    // Also include past 7 days
+    for (let i = 7; i >= 1; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        dayMap[key] = { date: d, total: 0 };
+    }
+
+    filteredData.forEach(row => {
+        if (row.date) {
+            const key = row.date.toISOString().split('T')[0];
+            if (dayMap[key]) {
+                dayMap[key].total += 1;
+            }
+        }
+    });
+
+    const sortedKeys = Object.keys(dayMap).sort();
+    const labels = sortedKeys.map(k => {
+        const d = dayMap[k].date;
+        return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
+    });
+    const values = sortedKeys.map(k => dayMap[k].total);
+
+    // Find today index for annotation
+    const todayKey = today.toISOString().split('T')[0];
+    const todayIdx = sortedKeys.indexOf(todayKey);
+
+    charts['chartTimeline'] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Arrivi (qty)',
+                data: values,
+                backgroundColor: sortedKeys.map((k, i) => {
+                    if (k === todayKey) return 'rgba(34, 197, 94, 0.7)';
+                    if (k < todayKey) return 'rgba(107, 114, 128, 0.4)';
+                    return 'rgba(59, 130, 246, 0.6)';
+                }),
+                borderColor: sortedKeys.map((k) => {
+                    if (k === todayKey) return '#22c55e';
+                    if (k < todayKey) return 'rgba(107, 114, 128, 0.6)';
+                    return '#3b82f6';
+                }),
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 22, 40, 0.95)',
+                    titleColor: '#e8edf5',
+                    bodyColor: '#8ba3c7',
+                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                    borderWidth: 1,
+                    padding: 12,
+                    titleFont: { family: 'Inter', weight: 600 },
+                    bodyFont: { family: 'Inter' },
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(59, 130, 246, 0.06)' },
+                    ticks: {
+                        color: '#5a7a9e',
+                        font: { size: 10, family: 'Inter' },
+                        maxRotation: 45,
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(59, 130, 246, 0.06)' },
+                    ticks: {
+                        color: '#5a7a9e',
+                        font: { size: 11, family: 'Inter' },
+                        stepSize: 1,
+                    }
+                }
+            },
+            animation: { duration: 800 }
+        }
+    });
+}
+
+// ─── Pivot Table ────────────────────────────────────────────
+function renderPivotTable() {
+    const head = document.getElementById('pivotHead');
+    const body = document.getElementById('pivotBody');
+
+    // Get unique locations and models
+    const locations = [...new Set(filteredData.map(r => r.location))].sort();
+    const models = [...new Set(filteredData.map(r => r.model))].sort();
+
+    // Build matrix
+    const matrix = {};
+    const locationTotals = {};
+    const modelTotals = {};
+    let grandTotal = 0;
+
+    locations.forEach(loc => {
+        matrix[loc] = {};
+        locationTotals[loc] = 0;
+        models.forEach(mod => {
+            matrix[loc][mod] = 0;
+        });
+    });
+    models.forEach(mod => modelTotals[mod] = 0);
+
+    filteredData.forEach(row => {
+        if (matrix[row.location]) {
+            matrix[row.location][row.model] = (matrix[row.location][row.model] || 0) + 1;
+            locationTotals[row.location] += 1;
+            modelTotals[row.model] = (modelTotals[row.model] || 0) + 1;
+            grandTotal += 1;
+        }
+    });
+
+    // Render header
+    head.innerHTML = '<tr><th>Location / Hub</th>' +
+        models.map(m => '<th>' + escapeHtml(m) + '</th>').join('') +
+        '<th>TOTALE</th></tr>';
+
+    // Render rows
+    body.innerHTML = locations.map(loc => {
+        return '<tr><td><strong>' + escapeHtml(loc) + '</strong></td>' +
+            models.map(mod => '<td>' + (matrix[loc][mod] || 0).toLocaleString('it-IT') + '</td>').join('') +
+            '<td><strong>' + locationTotals[loc].toLocaleString('it-IT') + '</strong></td></tr>';
+    }).join('') +
+    // Total row
+    '<tr class="pivot-total"><td><strong>TOTALE</strong></td>' +
+    models.map(mod => '<td>' + modelTotals[mod].toLocaleString('it-IT') + '</td>').join('') +
+    '<td>' + grandTotal.toLocaleString('it-IT') + '</td></tr>';
+}
+
+// ─── Postpone Table ─────────────────────────────────────────
+function renderPostponeTable() {
+    const section = document.getElementById('postponeSection');
+    const body = document.getElementById('postponeBody');
+    const countEl = document.getElementById('postponeCount');
+
+    // Find orders where delivery date is BEFORE arrival date
+    const postponeOrders = filteredData.filter(row => {
+        if (!row.deliveryDate || !row.date) return false;
+        const delivery = new Date(row.deliveryDate);
+        delivery.setHours(0, 0, 0, 0);
+        const arrival = new Date(row.date);
+        arrival.setHours(0, 0, 0, 0);
+        return delivery < arrival;
+    }).map(row => {
+        const delivery = new Date(row.deliveryDate);
+        delivery.setHours(0, 0, 0, 0);
+        const arrival = new Date(row.date);
+        arrival.setHours(0, 0, 0, 0);
+        const delayDays = Math.round((arrival - delivery) / 86400000);
+        return { ...row, delayDays };
+    }).sort((a, b) => b.delayDays - a.delayDays); // worst first
+
+    if (postponeOrders.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    countEl.textContent = postponeOrders.length + ' ordini';
+
+    body.innerHTML = postponeOrders.map(row => {
+        const statusClass = 'status-' + row.status.toLowerCase().replace(/\s+/g, '-');
+        const isCritical = row.delayDays >= 5;
+
+        let rnCell = '';
+        if (row.reservationNumber) {
+            rnCell = `<td><a href="https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=${encodeURIComponent(row.reservationNumber)}" target="_blank" rel="noopener" class="wdo-link" title="Apri DRO Advisor - ${escapeHtml(row.reservationNumber)}">${escapeHtml(row.reservationNumber)} <svg class="wdo-link-icon" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 1H2C1.45 1 1 1.45 1 2V10C1 10.55 1.45 11 2 11H10C10.55 11 11 10.55 11 10V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M7 1H11V5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 7L11 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></a></td>`;
+        } else {
+            rnCell = '<td>—</td>';
+        }
+
+        return `<tr>
+            <td>${escapeHtml(row.orderId)}</td>
+            ${rnCell}
+            <td>${escapeHtml(row.location)}</td>
+            <td style="color:#ef4444;font-weight:600;">${row.deliveryDateStr}</td>
+            <td>${row.dateStr}</td>
+            <td><span class="delay-days ${isCritical ? 'delay-critical' : ''}">+${row.delayDays}gg</span></td>
+            <td>${escapeHtml(row.model)}</td>
+            <td><span class="status-badge ${statusClass}">${escapeHtml(row.status)}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+function exportPostponeCSV() {
+    const table = document.getElementById('postponeTable');
+    downloadTableCSV(table, 'tesla_fleet_da_posticipare.csv');
+}
+
+// ─── Ready to Deliver Section ───────────────────────────────
+function renderReadySection() {
+    const section = document.getElementById('readySection');
+    if (!section) return;
+    const greenBody = document.getElementById('readyGreenBody');
+    const redBody = document.getElementById('readyRedBody');
+    const greenCount = document.getElementById('readyGreenCount');
+    const redCount = document.getElementById('readyRedCount');
+    const redSection = document.getElementById('readyRedSection');
+
+    // Check if File 2 data is available
+    const hasFile2 = filteredData.some(r => r.finalPaymentStatus !== undefined);
+    if (!hasFile2) {
+        section.style.display = 'none';
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // "A terra in hub" = arrival date is today or in the past
+    // "Payment Complete" = finalPaymentStatus contains "complete" (case insensitive)
+    const isPaymentComplete = (r) => {
+        const ps = (r.finalPaymentStatus || '').trim().toUpperCase();
+        if (ps.includes('INCOMPLETE') || ps.includes('NOT COMPLETE') || ps.includes('NOT PAID') || ps.includes('PENDING')) return false;
+        return ps === 'COMPLETE' || ps === 'PAID' || ps === 'RECEIVED';
+    };
+
+    const isAtHub = (r) => {
+        if (!r.date) return false;
+        const arrival = new Date(r.date);
+        arrival.setHours(0, 0, 0, 0);
+        return arrival <= today;
+    };
+
+    // Filter: Payment complete + at hub = READY
+    const readyOrders = filteredData.filter(r => isPaymentComplete(r) && isAtHub(r));
+
+    // Filter: Payment NOT complete + at hub = NEED PAYMENT
+    const needPaymentOrders = filteredData.filter(r => !isPaymentComplete(r) && isAtHub(r) && r.finalPaymentStatus);
+
+    // Show/hide payment section
+    const paymentSection = document.getElementById('paymentSection');
+    const paymentBody = document.getElementById('paymentBody');
+    const paymentCount = document.getElementById('paymentCount');
+
+    if (needPaymentOrders.length > 0) {
+        paymentSection.style.display = 'block';
+        paymentCount.textContent = needPaymentOrders.length + ' da sollecitare';
+
+        // Add days on ground
+        needPaymentOrders.forEach(r => {
+            const arrival = new Date(r.date); arrival.setHours(0,0,0,0);
+            r._daysOnGround = Math.round((today - arrival) / 86400000);
+        });
+        needPaymentOrders.sort((a, b) => b._daysOnGround - a._daysOnGround);
+
+        // Store for pagination
+        window._paymentAll = needPaymentOrders;
+        const totalPayPages = Math.ceil(needPaymentOrders.length / paymentPageSize);
+        if (paymentPage > totalPayPages) paymentPage = 1;
+        const payStart = (paymentPage - 1) * paymentPageSize;
+        const payPageData = needPaymentOrders.slice(payStart, payStart + paymentPageSize);
+
+        paymentBody.innerHTML = payPageData.map(row => {
+            let rnCell = row.reservationNumber
+                ? `<td><a href="https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=${encodeURIComponent(row.reservationNumber)}" target="_blank" class="wdo-link">${escapeHtml(row.reservationNumber)}</a></td>`
+                : '<td>—</td>';
+
+            const d = row._daysOnGround;
+            let groundClass = 'ground-ok';
+            if (d > 6) groundClass = 'ground-critical';
+            else if (d >= 4) groundClass = 'ground-warn';
+            const groundBadge = `<span class="ground-badge ${groundClass}">${d}gg</span>`;
+
+            const channelBadge = row.orderChannel === 'B2B'
+                ? '<span class="channel-badge channel-b2b">B2B</span>'
+                : row.orderChannel === 'B2C' ? '<span class="channel-badge channel-b2c">B2C</span>' : '—';
+
+            return `<tr>
+                <td>${escapeHtml(row.orderId)}</td>
+                ${rnCell}
+                <td>${escapeHtml(row.location)}</td>
+                <td>${escapeHtml(row.model)}</td>
+                <td>${groundBadge}</td>
+                <td style="color:#f97316;font-weight:700;">${escapeHtml(row.finalPaymentStatus || '')}</td>
+                <td>${escapeHtml(row.deliverySpecialist || '—')}</td>
+                <td>${channelBadge}</td>
+                <td style="font-size:0.8rem;">${escapeHtml(row.lastKnownLocation || '—')}</td>
+            </tr>`;
+        }).join('');
+
+        // Payment pagination
+        renderTablePagination('paymentPagination', paymentPage, totalPayPages, 'goPaymentPage');
+    } else {
+        paymentSection.style.display = 'none';
+    }
+
+    if (readyOrders.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+
+    // Split: green (no CH) vs red (CH active)
+    const greenOrders = readyOrders.filter(r => !r.isContainmentHold);
+    const redOrders = readyOrders.filter(r => r.isContainmentHold);
+
+    // Calculate days on ground for each
+    const addDaysOnGround = (r) => {
+        const arrival = new Date(r.date); arrival.setHours(0,0,0,0);
+        r._daysOnGround = Math.round((today - arrival) / 86400000);
+        return r;
+    };
+    greenOrders.forEach(addDaysOnGround);
+    redOrders.forEach(addDaysOnGround);
+
+    // Sort green: worst (most days on ground) first
+    greenOrders.sort((a, b) => b._daysOnGround - a._daysOnGround);
+
+    const overdue = greenOrders.filter(r => r._daysOnGround > 6).length;
+    greenCount.textContent = greenOrders.length + ' pronti' + (overdue ? ' | ' + overdue + ' SCADUTI' : '');
+
+    // Store globally for pagination
+    window._readyGreenAll = greenOrders;
+
+    // Paginate green table
+    const totalReadyPages = Math.ceil(greenOrders.length / readyPageSize);
+    if (readyPage > totalReadyPages) readyPage = 1;
+    const readyStart = (readyPage - 1) * readyPageSize;
+    const readyPageData = greenOrders.slice(readyStart, readyStart + readyPageSize);
+
+    // Render green table
+    greenBody.innerHTML = readyPageData.map(row => {
+        let rnCell = row.reservationNumber
+            ? `<td><a href="https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=${encodeURIComponent(row.reservationNumber)}" target="_blank" class="wdo-link">${escapeHtml(row.reservationNumber)}</a></td>`
+            : '<td>—</td>';
+
+        const channelBadge = row.orderChannel === 'B2B'
+            ? '<span class="channel-badge channel-b2b">B2B</span>'
+            : row.orderChannel === 'B2C' ? '<span class="channel-badge channel-b2c">B2C</span>' : '—';
+
+        const etaBadge = row.isConfidentETA === true
+            ? '<span class="eta-badge eta-confident">Confident</span>'
+            : row.isConfidentETA === false ? '<span class="eta-badge eta-notconfident">Not Confident</span>' : '—';
+
+        const schedBadge = row.isScheduled
+            ? '<span style="color:#22c55e;font-weight:700;">Si</span>'
+            : '<span style="color:#f97316;font-weight:700;">Da schedulare</span>';
+
+        // Days on ground badge with traffic light
+        const d = row._daysOnGround;
+        let groundClass = 'ground-ok';
+        if (d > 6) groundClass = 'ground-critical';
+        else if (d >= 4) groundClass = 'ground-warn';
+        const groundBadge = `<span class="ground-badge ${groundClass}">${d}gg${d > 6 ? ' !!!' : ''}</span>`;
+
+        const rowCls = d > 6 ? 'row-containment' : d >= 4 ? 'row-imminent' : '';
+
+        return `<tr class="${rowCls}">
+            <td>${escapeHtml(row.orderId)}</td>
+            ${rnCell}
+            <td>${escapeHtml(row.location)}</td>
+            <td>${escapeHtml(row.model)}</td>
+            <td>${row.dateStr}</td>
+            <td>${groundBadge}</td>
+            <td style="color:#22c55e;font-weight:600;">${escapeHtml(row.finalPaymentStatus || '')}</td>
+            <td>${escapeHtml(row.deliverySpecialist || '—')}</td>
+            <td>${channelBadge}</td>
+            <td>${etaBadge}</td>
+            <td>${schedBadge}</td>
+            <td style="font-size:0.8rem;">${escapeHtml(row.lastKnownLocation || '—')}</td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="11" style="text-align:center;color:#5a7a9e;">Nessun ordine pronto senza blocchi</td></tr>';
+
+    // Ready pagination
+    renderTablePagination('readyPagination', readyPage, totalReadyPages, 'goReadyPage');
+
+    // Render red table (CH blocked)
+    if (redOrders.length > 0) {
+        redSection.style.display = 'block';
+        redCount.textContent = redOrders.length + ' bloccati';
+
+        redBody.innerHTML = redOrders.map(row => {
+            let rnCell = row.reservationNumber
+                ? `<td><a href="https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=${encodeURIComponent(row.reservationNumber)}" target="_blank" class="wdo-link">${escapeHtml(row.reservationNumber)}</a></td>`
+                : '<td>—</td>';
+
+            const statusClass = 'status-' + row.status.toLowerCase().replace(/\s+/g, '-');
+
+            return `<tr class="row-containment">
+                <td>${escapeHtml(row.orderId)}</td>
+                ${rnCell}
+                <td>${escapeHtml(row.location)}</td>
+                <td>${escapeHtml(row.model)}</td>
+                <td>${row.dateStr}</td>
+                <td style="color:#22c55e;font-weight:600;">${escapeHtml(row.finalPaymentStatus || '')}</td>
+                <td><span class="ch-badge ch-true">CH</span></td>
+                <td style="font-size:0.8rem;">${escapeHtml(row.lastKnownLocation || '—')}</td>
+                <td><span class="status-badge ${statusClass}">${escapeHtml(row.status)}</span></td>
+            </tr>`;
+        }).join('');
+    } else {
+        redSection.style.display = 'none';
+    }
+}
+
+function exportReadyCSV(type) {
+    const table = document.getElementById(type === 'green' ? 'readyGreenTable' : 'readyRedTable');
+    const filename = type === 'green' ? 'tesla_fleet_pronti_consegna.csv' : 'tesla_fleet_bloccati_ch.csv';
+    downloadTableCSV(table, filename);
+}
+
+function exportPaymentCSV() {
+    const table = document.getElementById('paymentTable');
+    downloadTableCSV(table, 'tesla_fleet_da_pagare.csv');
+}
+
+// ─── Generic Table Pagination ───────────────────────────────
+function renderTablePagination(containerId, currentPg, totalPgs, fnName) {
+    const pag = document.getElementById(containerId);
+    if (!pag || totalPgs <= 1) { if (pag) pag.innerHTML = ''; return; }
+
+    let html = `<button onclick="${fnName}(${currentPg - 1})" ${currentPg === 1 ? 'disabled' : ''}>&laquo;</button>`;
+    const maxV = 5;
+    let sp = Math.max(1, currentPg - Math.floor(maxV / 2));
+    let ep = Math.min(totalPgs, sp + maxV - 1);
+    if (ep - sp < maxV - 1) sp = Math.max(1, ep - maxV + 1);
+
+    if (sp > 1) html += `<button onclick="${fnName}(1)">1</button>`;
+    if (sp > 2) html += `<button disabled>...</button>`;
+    for (let i = sp; i <= ep; i++) {
+        html += `<button onclick="${fnName}(${i})" class="${i === currentPg ? 'active' : ''}">${i}</button>`;
+    }
+    if (ep < totalPgs - 1) html += `<button disabled>...</button>`;
+    if (ep < totalPgs) html += `<button onclick="${fnName}(${totalPgs})">${totalPgs}</button>`;
+    html += `<button onclick="${fnName}(${currentPg + 1})" ${currentPg === totalPgs ? 'disabled' : ''}>&raquo;</button>`;
+    pag.innerHTML = html;
+}
+
+function goReadyPage(p) { readyPage = p; renderReadySection(); }
+function goPaymentPage(p) { paymentPage = p; renderReadySection(); }
+function changeReadyPageSize() { readyPageSize = parseInt(document.getElementById('readyPageSize').value); readyPage = 1; renderReadySection(); }
+function changePaymentPageSize() { paymentPageSize = parseInt(document.getElementById('paymentPageSize').value); paymentPage = 1; renderReadySection(); }
+
+// ─── Arrivals Table ─────────────────────────────────────────
+function renderArrivalsTable() {
+    const body = document.getElementById('arrivalsBody');
+
+    // Check if we have reservation data and delivery date data
+    const hasReservation = filteredData.some(r => r.reservationNumber);
+    const hasDeliveryDate = filteredData.some(r => r.deliveryDate);
+
+    // Update table header dynamically
+    const thead = document.querySelector('#arrivalsTable thead tr');
+    let colIdx = 0;
+    let colMap = {}; // track which sortCol index maps to which field
+
+    let headerHtml = '';
+    headerHtml += `<th onclick="sortTable(${colIdx})">Order ID / VIN <span class="sort-icon">&#8597;</span></th>`;
+    colMap[colIdx] = 'orderId'; colIdx++;
+
+    if (hasReservation) {
+        headerHtml += `<th onclick="sortTable(${colIdx})">Reservation # <span class="sort-icon">&#8597;</span></th>`;
+        colMap[colIdx] = 'reservationNumber'; colIdx++;
+    }
+
+    headerHtml += `<th onclick="sortTable(${colIdx})">Hub / Location <span class="sort-icon">&#8597;</span></th>`;
+    colMap[colIdx] = 'location'; colIdx++;
+
+    headerHtml += `<th onclick="sortTable(${colIdx})">Data Arrivo <span class="sort-icon">&#8597;</span></th>`;
+    colMap[colIdx] = 'date'; colIdx++;
+
+    // Check for File 2 enriched data
+    const hasFile2 = filteredData.some(r => r.orderChannel || r.isConfidentETA !== undefined || r.isContainmentHold !== undefined);
+
+    if (hasDeliveryDate) {
+        headerHtml += `<th onclick="sortTable(${colIdx})">Data Consegna <span class="sort-icon">&#8597;</span></th>`;
+        colMap[colIdx] = 'deliveryDate'; colIdx++;
+    }
+
+    headerHtml += `<th onclick="sortTable(${colIdx})">Modello <span class="sort-icon">&#8597;</span></th>`;
+    colMap[colIdx] = 'model'; colIdx++;
+
+    headerHtml += `<th onclick="sortTable(${colIdx})">Stato <span class="sort-icon">&#8597;</span></th>`;
+    colMap[colIdx] = 'status'; colIdx++;
+
+    if (hasFile2) {
+        headerHtml += `<th onclick="sortTable(${colIdx})">B2B/B2C <span class="sort-icon">&#8597;</span></th>`;
+        colMap[colIdx] = 'orderChannel'; colIdx++;
+
+        headerHtml += `<th onclick="sortTable(${colIdx})">ETA <span class="sort-icon">&#8597;</span></th>`;
+        colMap[colIdx] = 'isConfidentETA'; colIdx++;
+
+        headerHtml += `<th onclick="sortTable(${colIdx})">CH <span class="sort-icon">&#8597;</span></th>`;
+        colMap[colIdx] = 'isContainmentHold'; colIdx++;
+
+        headerHtml += `<th onclick="sortTable(${colIdx})">Posizione <span class="sort-icon">&#8597;</span></th>`;
+        colMap[colIdx] = 'lastKnownLocation'; colIdx++;
+
+        headerHtml += `<th onclick="sortTable(${colIdx})">Pagamento <span class="sort-icon">&#8597;</span></th>`;
+        colMap[colIdx] = 'finalPaymentStatus'; colIdx++;
+
+        headerHtml += `<th onclick="sortTable(${colIdx})">Sched. <span class="sort-icon">&#8597;</span></th>`;
+        colMap[colIdx] = 'isScheduled'; colIdx++;
+    }
+
+    thead.innerHTML = headerHtml;
+
+    // Sort
+    const sortField = colMap[sortCol] || 'date';
+    const sorted = [...filteredData].sort((a, b) => {
+        let va, vb;
+        switch (sortField) {
+            case 'orderId':           va = a.orderId; vb = b.orderId; break;
+            case 'reservationNumber': va = a.reservationNumber; vb = b.reservationNumber; break;
+            case 'location':          va = a.location; vb = b.location; break;
+            case 'date':              va = a.date ? a.date.getTime() : 0; vb = b.date ? b.date.getTime() : 0; break;
+            case 'deliveryDate':      va = a.deliveryDate ? a.deliveryDate.getTime() : 0; vb = b.deliveryDate ? b.deliveryDate.getTime() : 0; break;
+            case 'model':             va = a.model; vb = b.model; break;
+            case 'status':            va = a.status; vb = b.status; break;
+            case 'orderChannel':      va = a.orderChannel || ''; vb = b.orderChannel || ''; break;
+            case 'isConfidentETA':    va = a.isConfidentETA ? 1 : 0; vb = b.isConfidentETA ? 1 : 0; break;
+            case 'isContainmentHold': va = a.isContainmentHold ? 1 : 0; vb = b.isContainmentHold ? 1 : 0; break;
+            case 'lastKnownLocation': va = a.lastKnownLocation || ''; vb = b.lastKnownLocation || ''; break;
+            case 'finalPaymentStatus':va = a.finalPaymentStatus || ''; vb = b.finalPaymentStatus || ''; break;
+            case 'isScheduled':       va = a.isScheduled ? 1 : 0; vb = b.isScheduled ? 1 : 0; break;
+            default:                  va = 0; vb = 0;
+        }
+        if (typeof va === 'string') {
+            return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        return sortAsc ? va - vb : vb - va;
+    });
+
+    // Pagination
+    const totalPages = Math.ceil(sorted.length / pageSize);
+    const start = (currentPage - 1) * pageSize;
+    const pageData = sorted.slice(start, start + pageSize);
+
+    body.innerHTML = pageData.map(row => {
+        const statusClass = 'status-' + row.status.toLowerCase().replace(/\s+/g, '-');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const isToday = row.date && row.date.toDateString() === today.toDateString();
+        const isPast = row.date && row.date < today;
+
+        // Urgency CSS class for entire row
+        let rowClass = '';
+        if (row.urgency === 'imminent') rowClass = 'row-imminent';
+        else if (row.urgency === 'today') rowClass = 'row-today';
+        else if (row.urgency === 'soon') rowClass = 'row-soon';
+
+        // Build Reservation Number cell
+        let reservationCell = '';
+        if (hasReservation) {
+            if (row.reservationNumber) {
+                reservationCell = `<td><a href="https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=${encodeURIComponent(row.reservationNumber)}" target="_blank" rel="noopener" class="wdo-link" title="Apri DRO Advisor - ${escapeHtml(row.reservationNumber)}">${escapeHtml(row.reservationNumber)} <svg class="wdo-link-icon" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 1H2C1.45 1 1 1.45 1 2V10C1 10.55 1.45 11 2 11H10C10.55 11 11 10.55 11 10V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M7 1H11V5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 7L11 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></a></td>`;
+            } else {
+                reservationCell = `<td>—</td>`;
+            }
+        }
+
+        // Build delivery date cell with urgency badge
+        let deliveryCell = '';
+        if (hasDeliveryDate) {
+            let urgencyBadge = '';
+            if (row.urgency === 'today') {
+                urgencyBadge = `<span class="urgency-badge urgency-today">OGGI</span>`;
+            } else if (row.urgency === 'imminent') {
+                urgencyBadge = `<span class="urgency-badge urgency-imminent">${row.daysUntil}g</span>`;
+            } else if (row.urgency === 'soon') {
+                urgencyBadge = `<span class="urgency-badge urgency-soon">${row.daysUntil}g</span>`;
+            }
+            deliveryCell = `<td class="delivery-cell ${row.urgency === 'imminent' || row.urgency === 'today' ? 'delivery-flash' : ''}">${row.deliveryDateStr} ${urgencyBadge}</td>`;
+        }
+
+        // Containment Hold override — row flashes red
+        if (row.isContainmentHold) rowClass = 'row-containment';
+
+        // Build File 2 extra cells
+        let file2Cells = '';
+        if (hasFile2) {
+            // B2B/B2C
+            const channelBadge = row.orderChannel === 'B2B'
+                ? '<span class="channel-badge channel-b2b">B2B</span>'
+                : row.orderChannel === 'B2C'
+                    ? '<span class="channel-badge channel-b2c">B2C</span>'
+                    : '—';
+
+            // Confident ETA
+            const etaBadge = row.isConfidentETA === true
+                ? '<span class="eta-badge eta-confident">Confident</span>'
+                : row.isConfidentETA === false
+                    ? '<span class="eta-badge eta-notconfident">Not Confident</span>'
+                    : '—';
+
+            // Containment Hold
+            const chBadge = row.isContainmentHold
+                ? '<span class="ch-badge ch-true">CH</span>'
+                : row.isContainmentHold === false ? '<span style="color:#5a7a9e;">—</span>' : '—';
+
+            // Last Known Location
+            const locCell = row.lastKnownLocation || '—';
+
+            // Payment Status
+            const payCell = row.finalPaymentStatus || '—';
+
+            // Scheduled
+            const schedBadge = row.isScheduled
+                ? '<span style="color:#22c55e;">Si</span>'
+                : row.isScheduled === false ? '<span style="color:#5a7a9e;">No</span>' : '—';
+
+            file2Cells = `
+                <td>${channelBadge}</td>
+                <td>${etaBadge}</td>
+                <td>${chBadge}</td>
+                <td style="font-size:0.8rem;">${escapeHtml(locCell)}</td>
+                <td style="font-size:0.8rem;">${escapeHtml(payCell)}</td>
+                <td>${schedBadge}</td>
+            `;
+        }
+
+        return `<tr class="${rowClass}">
+            <td>${escapeHtml(row.orderId)}</td>
+            ${reservationCell}
+            <td>${escapeHtml(row.location)}</td>
+            <td style="${isToday ? 'color:#22c55e;font-weight:600' : isPast ? 'color:#6b7280' : ''}">${row.dateStr}${isToday ? ' (OGGI)' : ''}</td>
+            ${deliveryCell}
+            <td>${escapeHtml(row.model)}</td>
+            <td><span class="status-badge ${statusClass}">${escapeHtml(row.status)}</span></td>
+            ${file2Cells}
+        </tr>`;
+    }).join('');
+
+    // Record count
+    document.getElementById('recordCount').textContent = sorted.length + ' record';
+
+    // Pagination controls
+    renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+    const pag = document.getElementById('pagination');
+    if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+    let html = '';
+    html += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Prec</button>`;
+
+    const maxVisible = 7;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) startPage = Math.max(1, endPage - maxVisible + 1);
+
+    if (startPage > 1) {
+        html += `<button onclick="goToPage(1)">1</button>`;
+        if (startPage > 2) html += `<button disabled>...</button>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button onclick="goToPage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<button disabled>...</button>`;
+        html += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+    }
+
+    html += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Succ &raquo;</button>`;
+
+    pag.innerHTML = html;
+}
+
+function goToPage(page) {
+    currentPage = page;
+    renderArrivalsTable();
+}
+
+function sortTable(col) {
+    if (sortCol === col) {
+        sortAsc = !sortAsc;
+    } else {
+        sortCol = col;
+        sortAsc = true;
+    }
+    renderArrivalsTable();
+}
+
+// ─── Location Summary Cards ─────────────────────────────────
+function renderLocationCards() {
+    const container = document.getElementById('locationCards');
+    const locationData = {};
+
+    filteredData.forEach(row => {
+        if (!locationData[row.location]) {
+            locationData[row.location] = {
+                total: 0,
+                models: {},
+                statuses: {},
+                nextArrival: null,
+            };
+        }
+        const loc = locationData[row.location];
+        loc.total += 1;
+        loc.models[row.model] = (loc.models[row.model] || 0) + 1;
+        loc.statuses[row.status] = (loc.statuses[row.status] || 0) + 1;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (row.date >= today && (!loc.nextArrival || row.date < loc.nextArrival)) {
+            loc.nextArrival = row.date;
+        }
+    });
+
+    const maxVolume = Math.max(...Object.values(locationData).map(l => l.total), 1);
+
+    const sortedLocations = Object.entries(locationData).sort((a, b) => b[1].total - a[1].total);
+
+    container.innerHTML = sortedLocations.map(([name, data]) => {
+        const barWidth = (data.total / maxVolume * 100).toFixed(1);
+        const modelEntries = Object.entries(data.models).sort((a, b) => b[1] - a[1]).slice(0, 4);
+        const statusEntries = Object.entries(data.statuses).sort((a, b) => b[1] - a[1]).slice(0, 4);
+
+        return `<div class="location-card">
+            <div class="location-card-header">
+                <span class="location-card-name">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2 C8.13 2 5 5.13 5 9 C5 14.25 12 22 12 22 C12 22 19 14.25 19 9 C19 5.13 15.87 2 12 2Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2" stroke="currentColor" stroke-width="2"/></svg>
+                    ${escapeHtml(name)}
+                </span>
+                <span class="location-card-count">${data.total.toLocaleString('it-IT')}</span>
+            </div>
+            <div class="location-card-details">
+                ${modelEntries.map(([m, q]) =>
+                    `<div class="location-detail">
+                        <span class="location-detail-label">${escapeHtml(m)}</span>
+                        <span class="location-detail-value">${q}</span>
+                    </div>`
+                ).join('')}
+            </div>
+            ${data.nextArrival ? `<div style="margin-top:8px;font-size:0.75rem;color:#06b6d4;">Prossimo arrivo: ${data.nextArrival.toLocaleDateString('it-IT')}</div>` : ''}
+            <div class="location-card-bar">
+                <div class="location-card-bar-fill" style="width: ${barWidth}%"></div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ─── Export ─────────────────────────────────────────────────
+function exportPivotCSV() {
+    const table = document.getElementById('pivotTable');
+    downloadTableCSV(table, 'tesla_fleet_pivot.csv');
+}
+
+function exportTableCSV() {
+    const table = document.getElementById('arrivalsTable');
+    downloadTableCSV(table, 'tesla_fleet_arrivi.csv');
+}
+
+function downloadTableCSV(table, filename) {
+    const rows = [];
+    const headerCells = table.querySelectorAll('thead th');
+    rows.push(Array.from(headerCells).map(c => '"' + c.textContent.replace(/[↕]/g, '').trim() + '"').join(','));
+
+    const bodyRows = table.querySelectorAll('tbody tr');
+    bodyRows.forEach(tr => {
+        const cells = tr.querySelectorAll('td');
+        rows.push(Array.from(cells).map(c => '"' + c.textContent.trim() + '"').join(','));
+    });
+
+    const csvContent = '\uFEFF' + rows.join('\n'); // BOM for Excel
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+}
+
+// ─── Demo Data ──────────────────────────────────────────────
+function loadDemoData() {
+    const locations = ['Milano Hub', 'Roma Compound', 'Napoli Porto', 'Torino Terminal', 'Genova Porto', 'Civitavecchia', 'Livorno Hub', 'Venezia Terminal'];
+    const models = ['Model 3', 'Model Y', 'Model S', 'Model X', 'Cybertruck', 'Semi'];
+    const statuses = ['In Transito', 'Programmato', 'Arrivato', 'In Ritardo', 'In Attesa'];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const demoRows = [];
+    for (let i = 0; i < 250; i++) {
+        const daysOffset = Math.floor(Math.random() * 40) - 7; // -7 to +33
+        const arrivalDate = new Date(today);
+        arrivalDate.setDate(arrivalDate.getDate() + daysOffset);
+
+        let status;
+        if (daysOffset < -1) status = 'Arrivato';
+        else if (daysOffset < 0) status = Math.random() > 0.5 ? 'Arrivato' : 'In Ritardo';
+        else if (daysOffset === 0) status = Math.random() > 0.3 ? 'In Transito' : 'Arrivato';
+        else if (daysOffset < 5) status = Math.random() > 0.3 ? 'In Transito' : 'Programmato';
+        else status = Math.random() > 0.2 ? 'Programmato' : 'In Attesa';
+
+        const rn = 'RN' + String(200000000 + Math.floor(Math.random() * 99999999));
+
+        // Delivery date = arrival + 0 to 3 days
+        const deliveryDate = new Date(arrivalDate);
+        deliveryDate.setDate(deliveryDate.getDate() + Math.floor(Math.random() * 4));
+
+        demoRows.push({
+            'Order ID': 'TFV-' + String(10000 + i),
+            'Reservation Number': rn,
+            'WDOCheckoutLink': 'https://dro.tesla.com/advisor',
+            'Location': locations[Math.floor(Math.random() * locations.length)],
+            'Data Arrivo': arrivalDate,
+            'Data Consegna': deliveryDate,
+            'Modello': models[Math.floor(Math.random() * models.length)],
+            'Stato': status,
+        });
+    }
+
+    allHeaders = ['Order ID', 'Reservation Number', 'WDOCheckoutLink', 'Location', 'Data Arrivo', 'Data Consegna', 'Modello', 'Stato'];
+    rawData = demoRows;
+    columnMap = {
+        orderId: 'Order ID',
+        reservationNumber: 'Reservation Number',
+        wdoCheckoutLink: 'WDOCheckoutLink',
+        location: 'Location',
+        date: 'Data Arrivo',
+        deliveryDate: 'Data Consegna',
+        model: 'Modello',
+        status: 'Stato',
+    };
+
+    processAndRender();
+}
+
+// ─── Utilities ──────────────────────────────────────────────
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function showUpload() {
+    // Go back to boot screen
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('bootScreen').style.display = 'flex';
+    document.getElementById('bootScreen').classList.remove('booting');
+
+    // Reset state
+    rawData = [];
+    filteredData = [];
+    columnMap = {};
+    bootFile1Loaded = false;
+    bootFile2Loaded = false;
+
+    // Reset boot UI
+    document.getElementById('bootSlot1').classList.remove('loaded');
+    document.getElementById('bootSlot2').classList.remove('loaded');
+    document.getElementById('bootDesc1').textContent = 'Export da chart "Tutti gli ordini con telaio"';
+    document.getElementById('bootDesc2').textContent = 'B2B/B2C, ETA2SC, Containment Hold';
+    document.getElementById('bootAction1').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v3h14v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>CARICA EXCEL</span>';
+    document.getElementById('bootAction2').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v3h14v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>OPZIONALE</span>';
+    document.getElementById('bootStartBtn').disabled = true;
+    document.getElementById('bootStartBtn').querySelector('.boot-start-text').textContent = 'IN ATTESA DATI...';
+    document.getElementById('bootInsertText').textContent = 'Inserisci i file dati per iniziare';
+    document.getElementById('bootInsertText').style.color = '';
+
+    const statusEl = document.getElementById('dataStatus');
+    statusEl.className = 'header-status';
+    statusEl.innerHTML = '<span class="status-dot"></span><span>In attesa dati</span>';
+}
+
+// ─── EASTER EGG: Battaglia Navale Tesla ─────────────────────
+const GAME = {
+    rows: 8,
+    cols: 8,
+    ships: [],
+    board: [],
+    revealed: [],
+    shots: 0,
+    hits: 0,
+    sunk: 0,
+    totalShipCells: 0,
+};
+
+const GAME_ROWS = ['Milano', 'Roma', 'Napoli', 'Torino', 'Genova', 'Livorno', 'Venezia', 'Bari'];
+const GAME_COLS = ['M3', 'MY', 'MS', 'MX', 'CT', 'Semi', 'Rd', 'PW'];
+
+const GAME_SHIPS = [
+    { name: 'Bisarca Cybertruck', icon: '🚛', size: 4 },
+    { name: 'Nave Model Y', icon: '🚢', size: 3 },
+    { name: 'Nave Model 3', icon: '⛴️', size: 3 },
+    { name: 'Furgone Model S', icon: '🚐', size: 2 },
+    { name: 'Auto Model X', icon: '🚗', size: 2 },
+];
+
+function openGame() {
+    document.getElementById('gameOverlay').style.display = 'flex';
+    initGame();
+}
+
+function closeGame() {
+    document.getElementById('gameOverlay').style.display = 'none';
+}
+
+function initGame() {
+    GAME.board = Array.from({ length: GAME.rows }, () => Array(GAME.cols).fill(null));
+    GAME.revealed = Array.from({ length: GAME.rows }, () => Array(GAME.cols).fill(false));
+    GAME.shots = 0;
+    GAME.hits = 0;
+    GAME.sunk = 0;
+    GAME.ships = [];
+    GAME.totalShipCells = 0;
+
+    // Place ships
+    GAME_SHIPS.forEach(shipDef => {
+        let placed = false;
+        let attempts = 0;
+        while (!placed && attempts < 200) {
+            attempts++;
+            const horizontal = Math.random() > 0.5;
+            const r = Math.floor(Math.random() * (horizontal ? GAME.rows : GAME.rows - shipDef.size + 1));
+            const c = Math.floor(Math.random() * (horizontal ? GAME.cols - shipDef.size + 1 : GAME.cols));
+
+            let canPlace = true;
+            const cells = [];
+            for (let i = 0; i < shipDef.size; i++) {
+                const cr = horizontal ? r : r + i;
+                const cc = horizontal ? c + i : c;
+                if (GAME.board[cr][cc] !== null) { canPlace = false; break; }
+                cells.push([cr, cc]);
+            }
+
+            if (canPlace) {
+                const ship = { ...shipDef, cells: cells, hitsOnShip: 0 };
+                cells.forEach(([cr, cc]) => { GAME.board[cr][cc] = ship; });
+                GAME.ships.push(ship);
+                GAME.totalShipCells += shipDef.size;
+                placed = true;
+            }
+        }
+    });
+
+    updateGameUI();
+    renderGameGrid();
+    setGameMessage('Clicca su una cella per sparare! Trova le 5 Tesla nascoste.', '');
+}
+
+function renderGameGrid() {
+    const grid = document.getElementById('gameGrid');
+    let html = '<tr><th></th>';
+    GAME_COLS.forEach(c => { html += '<th>' + c + '</th>'; });
+    html += '</tr>';
+
+    for (let r = 0; r < GAME.rows; r++) {
+        html += '<tr><th>' + GAME_ROWS[r] + '</th>';
+        for (let c = 0; c < GAME.cols; c++) {
+            const revealed = GAME.revealed[r][c];
+            const ship = GAME.board[r][c];
+            let cls = '';
+            let content = '';
+
+            if (revealed) {
+                cls = 'revealed ';
+                if (ship) {
+                    if (ship.hitsOnShip >= ship.size) {
+                        cls += 'game-sunk';
+                        content = ship.icon;
+                    } else {
+                        cls += 'game-hit';
+                        content = '💥';
+                    }
+                } else {
+                    cls += 'game-miss';
+                    content = '🌊';
+                }
+            }
+
+            html += `<td class="${cls}" onclick="fireShot(${r},${c})">${content}</td>`;
+        }
+        html += '</tr>';
+    }
+    grid.innerHTML = html;
+}
+
+function fireShot(r, c) {
+    if (GAME.revealed[r][c]) return;
+    if (GAME.sunk >= GAME_SHIPS.length) return;
+
+    GAME.revealed[r][c] = true;
+    GAME.shots++;
+
+    const ship = GAME.board[r][c];
+    if (ship) {
+        GAME.hits++;
+        ship.hitsOnShip++;
+
+        if (ship.hitsOnShip >= ship.size) {
+            GAME.sunk++;
+            // Reveal all cells of sunk ship
+            ship.cells.forEach(([sr, sc]) => { GAME.revealed[sr][sc] = true; });
+
+            if (GAME.sunk >= GAME_SHIPS.length) {
+                const score = Math.max(0, 1000 - (GAME.shots - GAME.totalShipCells) * 50);
+                setGameMessage(`HAI VINTO! Tutte le Tesla trovate in ${GAME.shots} colpi! Punteggio: ${score}`, 'win');
+                document.getElementById('gameScore').textContent = score;
+            } else {
+                setGameMessage(`${ship.icon} ${ship.name} AFFONDATA! (${GAME.sunk}/5)`, 'sunk');
+            }
+        } else {
+            setGameMessage(`💥 COLPITO! Hai beccato qualcosa a ${GAME_ROWS[r]}...`, 'hit');
+        }
+    } else {
+        setGameMessage(`🌊 Acqua a ${GAME_ROWS[r]} / ${GAME_COLS[c]}`, 'miss');
+    }
+
+    updateGameUI();
+    renderGameGrid();
+}
+
+function updateGameUI() {
+    document.getElementById('gameShots').textContent = GAME.shots;
+    document.getElementById('gameHits').textContent = GAME.hits;
+    document.getElementById('gameFound').textContent = GAME.sunk;
+}
+
+function setGameMessage(msg, type) {
+    const el = document.getElementById('gameMessage');
+    el.textContent = msg;
+    el.className = 'game-message ' + (type || '');
+}
+
+/* ============================================================
+   LIVE MODE — API Fetch Layer
+   Alimenta rawData/columnMap dagli stessi campi usati dall'upload.
+   NON modifica processAndRender, applyFilters, handleFile2Merge.
+   ============================================================ */
+
+// ─── Live Mode Config ───────────────────────────────────────
+const LIVE_CONFIG = {
+    baseUrl: 'http://localhost:3000',  // Default, configurabile da UI
+    ordersEndpoint: '/api/orders',
+    enterpriseEndpoint: '/api/enterprise',
+    refreshIntervalMs: 5 * 60 * 1000, // 5 minuti
+    bearerToken: null,                 // Placeholder per token reale
+};
+
+let liveMode = false;
+let liveRefreshTimer = null;
+let liveCountdownTimer = null;
+let liveCountdownSeconds = 0;
+let liveLastFetchTime = null;
+
+// ─── Boot Screen: LIVE MODE activation ──────────────────────
+function activateLiveMode() {
+    const configPanel = document.getElementById('bootLiveConfig');
+    const btn = document.getElementById('bootLiveBtn');
+    if (configPanel.style.display === 'none') {
+        configPanel.style.display = 'flex';
+        btn.classList.add('active');
+        // Pre-fill from saved config
+        const urlInput = document.getElementById('liveApiUrl');
+        if (urlInput && LIVE_CONFIG.baseUrl) urlInput.value = LIVE_CONFIG.baseUrl;
+    } else {
+        configPanel.style.display = 'none';
+        btn.classList.remove('active');
+    }
+}
+
+async function connectLiveMode() {
+    const urlInput = document.getElementById('liveApiUrl');
+    const statusEl = document.getElementById('bootLiveStatus');
+    const connectBtn = document.getElementById('bootLiveConnect');
+
+    LIVE_CONFIG.baseUrl = (urlInput.value || 'http://localhost:3000').replace(/\/+$/, '');
+    statusEl.textContent = 'Connessione in corso...';
+    statusEl.className = 'boot-live-status connecting';
+    connectBtn.disabled = true;
+
+    try {
+        // Health check first
+        const healthResp = await fetch(LIVE_CONFIG.baseUrl + '/api/health', {
+            headers: _liveAuthHeaders(),
+            signal: AbortSignal.timeout(5000),
+        });
+        if (!healthResp.ok) throw new Error('Health check fallito: ' + healthResp.status);
+        const health = await healthResp.json();
+
+        statusEl.textContent = 'API OK — ' + (health.orders_cached || '?') + ' ordini disponibili';
+        statusEl.className = 'boot-live-status connected';
+
+        // Now fetch actual data
+        await fetchLiveData();
+
+        // Mark as live mode
+        liveMode = true;
+
+        // Transition to optimus screen like bootStart()
+        bootStart();
+
+    } catch (err) {
+        console.error('[LIVE] Connection error:', err);
+        statusEl.textContent = 'Errore: ' + (err.message || 'impossibile connettersi');
+        statusEl.className = 'boot-live-status error';
+    } finally {
+        connectBtn.disabled = false;
+    }
+}
+
+// ─── Fetch data from API ────────────────────────────────────
+async function fetchLiveData() {
+    const headers = _liveAuthHeaders();
+
+    // Fetch File 1: orders
+    const ordersResp = await fetch(LIVE_CONFIG.baseUrl + LIVE_CONFIG.ordersEndpoint, {
+        headers: headers,
+        signal: AbortSignal.timeout(15000),
+    });
+    if (!ordersResp.ok) throw new Error('Orders API: ' + ordersResp.status);
+    const ordersJson = await ordersResp.json();
+    const ordersData = ordersJson.data || ordersJson;
+
+    if (!ordersData || ordersData.length === 0) {
+        throw new Error('Nessun ordine ricevuto dall\'API');
+    }
+
+    // Load into rawData + columnMap (same path as handleBootFile slot 1)
+    allHeaders = Object.keys(ordersData[0]);
+    rawData = ordersData;
+    const autoMapped = tryAutoMap(allHeaders);
+    if (autoMapped) {
+        columnMap = autoMapped;
+    } else {
+        throw new Error('Impossibile mappare le colonne dal JSON API');
+    }
+    bootFile1Loaded = true;
+
+    // Fetch File 2: enterprise
+    try {
+        const entResp = await fetch(LIVE_CONFIG.baseUrl + LIVE_CONFIG.enterpriseEndpoint, {
+            headers: headers,
+            signal: AbortSignal.timeout(15000),
+        });
+        if (entResp.ok) {
+            const entJson = await entResp.json();
+            const entData = entJson.data || entJson;
+            if (entData && entData.length > 0) {
+                window._bootFile2Data = entData;
+                bootFile2Loaded = true;
+                OPTIMUS_DATA[1].locked = false;
+                const lockBadge = document.getElementById('charLock1');
+                if (lockBadge) lockBadge.style.display = 'none';
+            }
+        }
+    } catch (e2) {
+        console.warn('[LIVE] Enterprise endpoint non disponibile, continuo senza:', e2.message);
+    }
+
+    // Update last fetch timestamp
+    liveLastFetchTime = new Date();
+    _updateLastFetchDisplay();
+}
+
+// ─── Auto-refresh (runs after dashboard is visible) ─────────
+function startLiveRefresh() {
+    if (!liveMode) return;
+
+    // Show live indicators in header
+    const liveGroup = document.getElementById('headerLiveGroup');
+    if (liveGroup) liveGroup.style.display = 'flex';
+
+    // Start countdown
+    liveCountdownSeconds = LIVE_CONFIG.refreshIntervalMs / 1000;
+    _startCountdown();
+
+    // Set interval for refresh
+    if (liveRefreshTimer) clearInterval(liveRefreshTimer);
+    liveRefreshTimer = setInterval(async () => {
+        await _doLiveRefresh();
+    }, LIVE_CONFIG.refreshIntervalMs);
+}
+
+function stopLiveRefresh() {
+    if (liveRefreshTimer) { clearInterval(liveRefreshTimer); liveRefreshTimer = null; }
+    if (liveCountdownTimer) { clearInterval(liveCountdownTimer); liveCountdownTimer = null; }
+    const liveGroup = document.getElementById('headerLiveGroup');
+    if (liveGroup) liveGroup.style.display = 'none';
+}
+
+function toggleLiveMode() {
+    if (liveMode) {
+        // Disable live mode
+        liveMode = false;
+        stopLiveRefresh();
+        const badge = document.getElementById('headerLiveBadge');
+        if (badge) badge.classList.remove('active');
+        const statusEl = document.getElementById('dataStatus');
+        statusEl.innerHTML = '<span class="status-dot"></span><span>' + rawData.length + ' ordini | LIVE disattivato</span>';
+    } else {
+        // Re-enable
+        liveMode = true;
+        startLiveRefresh();
+        const badge = document.getElementById('headerLiveBadge');
+        if (badge) badge.classList.add('active');
+        _doLiveRefresh();
+    }
+}
+
+async function _doLiveRefresh() {
+    const statusEl = document.getElementById('dataStatus');
+    try {
+        statusEl.className = 'header-status active';
+        statusEl.innerHTML = '<span class="status-dot" style="background:#eab308;box-shadow:0 0 8px rgba(234,179,8,0.5);"></span><span>Aggiornamento...</span>';
+
+        await fetchLiveData();
+
+        // Re-process (calls processAndRender which overwrites rawData with normalized version)
+        processAndRender();
+
+        // Merge File 2 if available
+        if (bootFile2Loaded && window._bootFile2Data) {
+            handleFile2Merge(window._bootFile2Data);
+        }
+
+        statusEl.className = 'header-status active';
+        statusEl.innerHTML = '<span class="status-dot"></span><span>' + rawData.length + ' ordini | LIVE</span>';
+
+        // Reset countdown
+        liveCountdownSeconds = LIVE_CONFIG.refreshIntervalMs / 1000;
+
+    } catch (err) {
+        console.error('[LIVE] Refresh error:', err);
+        statusEl.className = 'header-status';
+        statusEl.innerHTML = '<span class="status-dot" style="background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.5);"></span><span>Errore API — upload manuale disponibile</span>';
+
+        // Show error toast
+        _showLiveError(err.message);
+    }
+}
+
+// ─── Countdown timer display ────────────────────────────────
+function _startCountdown() {
+    if (liveCountdownTimer) clearInterval(liveCountdownTimer);
+    liveCountdownTimer = setInterval(() => {
+        if (liveCountdownSeconds > 0) liveCountdownSeconds--;
+        const mins = Math.floor(liveCountdownSeconds / 60);
+        const secs = liveCountdownSeconds % 60;
+        const countdownEl = document.getElementById('countdownText');
+        if (countdownEl) countdownEl.textContent = mins + ':' + String(secs).padStart(2, '0');
+    }, 1000);
+}
+
+function _updateLastFetchDisplay() {
+    const el = document.getElementById('lastUpdateTime');
+    if (el && liveLastFetchTime) {
+        el.textContent = liveLastFetchTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+}
+
+// ─── Auth headers builder ───────────────────────────────────
+function _liveAuthHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (LIVE_CONFIG.bearerToken) {
+        headers['Authorization'] = 'Bearer ' + LIVE_CONFIG.bearerToken;
+    }
+    return headers;
+}
+
+// ─── Error notification ─────────────────────────────────────
+function _showLiveError(message) {
+    // Create a temporary error toast
+    let toast = document.getElementById('liveErrorToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'liveErrorToast';
+        toast.className = 'live-error-toast';
+        document.body.appendChild(toast);
+    }
+    toast.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="#ef4444" stroke-width="1.5" fill="rgba(239,68,68,0.1)"/><line x1="9" y1="5" x2="9" y2="10" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="13" r="1" fill="#ef4444"/></svg>
+        <span><strong>API non raggiungibile</strong><br>${message}<br><small>Puoi caricare un file Excel manualmente</small></span>
+        <button onclick="this.parentElement.remove()">OK</button>
+    `;
+    toast.style.display = 'flex';
+    // Auto-dismiss after 10s
+    setTimeout(() => { if (toast && toast.parentElement) toast.remove(); }, 10000);
+}
+
+// ─── Hook: start live refresh after deploy ──────────────────
+// Override deployOptimus to also kick off refresh
+const _originalSelectOptimus = selectOptimus;
+selectOptimus = function(section) {
+    _originalSelectOptimus(section);
+    if (liveMode) {
+        setTimeout(() => startLiveRefresh(), 1500);
+    }
+};
+
+// ─── Hook: showUpload should stop live mode ─────────────────
+const _originalShowUpload = showUpload;
+showUpload = function() {
+    liveMode = false;
+    stopLiveRefresh();
+    _originalShowUpload();
+};
