@@ -142,7 +142,6 @@ function bootStart() {
 
     // Process File 2 if loaded
     if (bootFile2Loaded && window._bootFile2Data) {
-        rawData_backup = rawData;
         handleFile2Merge(window._bootFile2Data);
     }
 
@@ -373,33 +372,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('currentDate').textContent =
         now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-    // Set default filter dates
-    const today = now.toISOString().split('T')[0];
-    // Don't set default date filter - show all data
-    // document.getElementById('filterDateFrom').value = today;
+    // File input listeners (guard against missing elements)
+    const fi1 = document.getElementById('fileInput');
+    if (fi1) fi1.addEventListener('change', handleFileSelect);
 
-    // File input listener
-    document.getElementById('fileInput').addEventListener('change', handleFileSelect);
-
-    // Second file input listener
-    document.getElementById('fileInput2').addEventListener('change', handleFile2Select);
-
-    // Drag & drop
-    const uploadCard = document.querySelector('.upload-card');
-    uploadCard.addEventListener('dragover', e => {
-        e.preventDefault();
-        uploadCard.classList.add('drag-over');
-    });
-    uploadCard.addEventListener('dragleave', () => {
-        uploadCard.classList.remove('drag-over');
-    });
-    uploadCard.addEventListener('drop', e => {
-        e.preventDefault();
-        uploadCard.classList.remove('drag-over');
-        if (e.dataTransfer.files.length) {
-            handleFile(e.dataTransfer.files[0]);
-        }
-    });
+    const fi2 = document.getElementById('fileInput2');
+    if (fi2) fi2.addEventListener('change', handleFile2Select);
 });
 
 // ─── File Handling ──────────────────────────────────────────

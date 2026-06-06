@@ -211,52 +211,6 @@
     }, 0);
 })();
 
-// ─── GSAP: Optimus Selection Entrance ───────────────────────
-window.gsapOptimus = function() {
-    if (typeof gsap === 'undefined') return;
-
-    const tl = gsap.timeline();
-
-    // Header slide down
-    tl.from('.cod-header', {
-        y: -60,
-        opacity: 0,
-        duration: 0.6,
-        ease: 'power3.out',
-    });
-
-    // Characters entrance - staggered from sides
-    tl.from('.cod-char', {
-        y: 100,
-        opacity: 0,
-        scale: 0.7,
-        duration: 0.8,
-        stagger: 0.12,
-        ease: 'back.out(1.5)',
-    }, '-=0.3');
-
-    // Info bar slide up
-    tl.from('.cod-infobar', {
-        y: 40,
-        opacity: 0,
-        duration: 0.5,
-        ease: 'power3.out',
-    }, '-=0.3');
-
-    // Footer
-    tl.from('.cod-footer', {
-        opacity: 0,
-        duration: 0.4,
-    }, '-=0.2');
-
-    // Active character glow pulse
-    tl.to('.cod-char.active svg', {
-        filter: 'drop-shadow(0 0 20px rgba(59,130,246,0.4))',
-        duration: 0.6,
-        ease: 'power1.inOut',
-    }, '-=0.3');
-};
-
 // ─── GSAP: Character Switch Animation (EPIC) ───────────────
 window.gsapSwitchChar = function(idx) {
     if (typeof gsap === 'undefined') return;
