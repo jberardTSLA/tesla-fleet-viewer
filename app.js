@@ -582,6 +582,10 @@ function tryAutoMap(headers) {
     }
 
     // Check if we got at least location and date
+    console.log('[Fleet Viewer] Auto-map result:', JSON.stringify(map));
+    console.log('[Fleet Viewer] Excel headers:', headers.join(', '));
+    if (!map.location) console.warn('[Fleet Viewer] MISSING: location column not found!');
+    if (!map.date) console.warn('[Fleet Viewer] MISSING: date column not found!');
     return (map.location && map.date) ? map : null;
 }
 
@@ -704,7 +708,37 @@ function processAndRender() {
         };
     }).filter(r => r.date !== null); // Remove rows with no valid date
 
-    rawData = processed; // Overwrite with normalized
+    // Safety check: if ALL rows got filtered out, keep them anyway with today's date
+    if (processed.length === 0 && rawData.length > 0) {
+        console.warn('[Fleet Viewer] ATTENZIONE: nessuna data valida trovata! Usando la data odierna come fallback per ' + rawData.length + ' righe.');
+        const fallbackDate = new Date();
+        const fallbackProcessed = rawData.map((row, idx) => {
+            const orderId  = columnMap.orderId  ? String(row[columnMap.orderId] || '').trim()  : 'ORD-' + String(idx + 1).padStart(5, '0');
+            const location = columnMap.location ? String(row[columnMap.location] || '').trim() : 'N/A';
+            const model    = columnMap.model    ? String(row[columnMap.model] || '').trim()     : 'N/A';
+            const status   = columnMap.status   ? String(row[columnMap.status] || '').trim()    : 'N/A';
+            const deliverySpecialist = columnMap.deliverySpecialist ? String(row[columnMap.deliverySpecialist] || '').trim() : '';
+            let reservationNumber = columnMap.reservationNumber ? String(row[columnMap.reservationNumber] || '').trim() : '';
+            const wdoColValue = columnMap.wdoCheckoutLink ? String(row[columnMap.wdoCheckoutLink] || '').trim() : '';
+            if (!reservationNumber && wdoColValue && /^RN\d+$/i.test(wdoColValue)) reservationNumber = wdoColValue;
+            const wdoCheckoutLink = reservationNumber ? 'https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=' + encodeURIComponent(reservationNumber) : '';
+            // Try to get SOME date from the raw value
+            const rawDateVal = row[columnMap.date];
+            const rawDateStr = rawDateVal ? String(rawDateVal) : '';
+            return {
+                orderId, reservationNumber, wdoCheckoutLink, location,
+                date: fallbackDate,
+                dateStr: rawDateStr || fallbackDate.toLocaleDateString('it-IT'),
+                deliveryDate: null, deliveryDateStr: '—',
+                model, deliverySpecialist, status,
+                daysUntil: 0, urgency: 'none',
+            };
+        });
+        rawData = fallbackProcessed;
+        alert('Attenzione: le date nel file non sono state riconosciute.\n\nFormato colonna data: "' + (rawData[0]?.dateStr || '?') + '"\n\nI dati sono comunque caricati con data odierna.\nColonne mappate: ' + Object.keys(columnMap).join(', '));
+    } else {
+        rawData = processed;
+    }
     applyFilters();
 
     // Show dashboard
@@ -718,9 +752,21 @@ function processAndRender() {
 
 function parseAnyDate(dateVal) {
     if (!dateVal) return null;
-    if (dateVal instanceof Date) return dateVal;
+    if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? null : dateVal;
     if (typeof dateVal === 'number') {
-        // Excel serial date
+        // Excel serial date (number > 40000 is likely a serial date)
+        if (dateVal > 40000 && dateVal < 70000) {
+            return new Date((dateVal - 25569) * 86400 * 1000);
+        }
+        // Unix timestamp in seconds
+        if (dateVal > 1000000000 && dateVal < 2000000000) {
+            return new Date(dateVal * 1000);
+        }
+        // Unix timestamp in milliseconds
+        if (dateVal > 1000000000000) {
+            return new Date(dateVal);
+        }
+        // Fallback: try Excel serial anyway
         return new Date((dateVal - 25569) * 86400 * 1000);
     }
     if (typeof dateVal === 'string' && dateVal.trim()) {
@@ -730,24 +776,64 @@ function parseAnyDate(dateVal) {
 }
 
 function parseDateString(str) {
-    // Try common formats
-    // dd/mm/yyyy  dd-mm-yyyy  dd.mm.yyyy
-    let m = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+    // Remove common wrappers
+    str = str.replace(/^\s*["']+|["']+\s*$/g, '').trim();
+    if (!str || str === '-' || str === '—' || str.toLowerCase() === 'null' || str.toLowerCase() === 'n/a') return null;
+
+    let m, d;
+
+    // ISO 8601 with time: "2024-06-15T00:00:00.000Z" or "2024-06-15T14:30:00"
+    m = str.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+    if (m) {
+        d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]), parseInt(m[4]), parseInt(m[5]));
+        if (!isNaN(d.getTime())) return d;
+    }
+
+    // yyyy-mm-dd (plain)
+    m = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (m) {
+        d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+        if (!isNaN(d.getTime())) return d;
+    }
+
+    // dd/mm/yyyy  dd-mm-yyyy  dd.mm.yyyy (Italian/European)
+    m = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
     if (m) {
         let day = parseInt(m[1]);
         let month = parseInt(m[2]) - 1;
         let year = parseInt(m[3]);
         if (year < 100) year += 2000;
-        // If day > 12 its definitely dd/mm, else try dd/mm first (Italian)
-        return new Date(year, month, day);
+        d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) return d;
     }
-    // yyyy-mm-dd
-    m = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+
+    // "15 Jun 2024", "Jun 15, 2024", "June 15 2024", "15 June 2024"
+    const MONTHS = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11,
+                     gen:0, feb:1, mar:2, apr:3, mag:4, giu:5, lug:6, ago:7, set:8, ott:9, nov:10, dic:11,
+                     january:0, february:1, march:2, april:3, june:5, july:6, august:7, september:8, october:9, november:10, december:11,
+                     gennaio:0, febbraio:1, marzo:2, aprile:3, maggio:4, giugno:5, luglio:6, agosto:7, settembre:8, ottobre:9, novembre:10, dicembre:11 };
+    // "15 Jun 2024" or "15 June 2024"
+    m = str.match(/^(\d{1,2})[\s\-]+([a-zA-Z]+)[\s,\-]+(\d{4})$/);
     if (m) {
-        return new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+        const mon = MONTHS[m[2].toLowerCase().substring(0, 3)];
+        if (mon !== undefined) { d = new Date(parseInt(m[3]), mon, parseInt(m[1])); if (!isNaN(d.getTime())) return d; }
     }
-    // Fallback
-    const d = new Date(str);
+    // "Jun 15, 2024" or "June 15 2024"
+    m = str.match(/^([a-zA-Z]+)[\s]+(\d{1,2})[,\s]+(\d{4})$/);
+    if (m) {
+        const mon = MONTHS[m[1].toLowerCase().substring(0, 3)];
+        if (mon !== undefined) { d = new Date(parseInt(m[3]), mon, parseInt(m[2])); if (!isNaN(d.getTime())) return d; }
+    }
+
+    // mm/dd/yyyy (American) — only if first number > 12, swap with Italian
+    m = str.match(/^(\d{1,2})[\/](\d{1,2})[\/](\d{4})$/);
+    if (m && parseInt(m[1]) > 12) {
+        d = new Date(parseInt(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
+        if (!isNaN(d.getTime())) return d;
+    }
+
+    // Fallback: let JavaScript try
+    d = new Date(str);
     return isNaN(d.getTime()) ? null : d;
 }
 
