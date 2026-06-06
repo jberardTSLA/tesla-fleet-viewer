@@ -2993,12 +2993,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Demo mode link */
 .boot-demo-link {
     color: var(--text-muted);
-    text-decoration: none;
     font-size: 0.75rem;
     cursor: pointer;
     transition: color 0.3s;
     position: relative;
-    z-index: 10;
+    z-index: 999;
+    display: block;
+    text-align: center;
+    margin-top: 8px;
+    pointer-events: auto;
 }
 
 .boot-demo-link:hover {
