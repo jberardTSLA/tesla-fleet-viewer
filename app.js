@@ -1933,15 +1933,21 @@ function renderOpsSection() {
         <div class="ops-kpi"><span class="ops-kpi-val" style="color:${hubMaxDwell > 10 ? '#ef4444' : '#f97316'};">${hubMaxDwell}</span><span class="ops-kpi-label">Dwell max (gg)</span></div>
     `;
 
-    // ── Prep Lavaggio Settimana ──
-    const thisWeekStart = new Date(today); thisWeekStart.setDate(today.getDate() - today.getDay() + 1); // Monday
-    const thisWeekEnd = new Date(thisWeekStart); thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
-    thisWeekEnd.setHours(23,59,59);
+    // ── Prep Lavaggio PROSSIMA Settimana (lun-dom) ──
+    const dayOfWeek = today.getDay(); // 0=dom, 1=lun...
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + (dayOfWeek === 0 ? 1 : 8 - dayOfWeek));
+    nextMonday.setHours(0,0,0,0);
+    const nextSunday = new Date(nextMonday);
+    nextSunday.setDate(nextMonday.getDate() + 6);
+    nextSunday.setHours(23,59,59);
+
+    const weekLabel = nextMonday.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}) + ' — ' + nextSunday.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
 
     const weekDeliveries = locOrders.filter(r => {
         if (!r.deliveryDate) return false;
         const dd = new Date(r.deliveryDate);
-        return dd >= thisWeekStart && dd <= thisWeekEnd;
+        return dd >= nextMonday && dd <= nextSunday;
     });
 
     const usedCount = weekDeliveries.filter(r => {
@@ -1956,21 +1962,20 @@ function renderOpsSection() {
     const lightCount = weekDeliveries.filter(r => r.paintName && !isDark(r.paintName)).length;
     const unknownColor = weekDeliveries.filter(r => !r.paintName).length;
 
-    // Morning deliveries (SDD = today or tomorrow)
-    const morningAlert = weekDeliveries.filter(r => {
+    // Monday morning deliveries (first day of next week)
+    const mondayDeliveries = weekDeliveries.filter(r => {
         const dd = new Date(r.deliveryDate); dd.setHours(0,0,0,0);
-        const diff = Math.round((dd - today) / 86400000);
-        return diff >= 0 && diff <= 1;
+        return dd.getTime() === nextMonday.getTime();
     }).length;
 
     document.getElementById('opsKpiGrid').innerHTML += `
         <div class="ops-kpi" style="grid-column: 1/-1; background:rgba(168,85,247,0.05); border-color:rgba(168,85,247,0.2);">
             <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;width:100%;">
-                <span class="ops-kpi-label" style="font-size:0.7rem;color:#a855f7;letter-spacing:2px;flex-shrink:0;">PREP LAVAGGIO SETTIMANA</span>
+                <span class="ops-kpi-label" style="font-size:0.7rem;color:#a855f7;letter-spacing:2px;flex-shrink:0;">PREP LAVAGGIO ${weekLabel}</span>
                 <span class="ops-kpi-label" style="margin:0;"><strong style="color:#06b6d4;font-size:1.1rem;">${weekDeliveries.length}</strong> consegne</span>
                 <span class="ops-kpi-label" style="margin:0;"><strong style="color:#f97316;">${usedCount}</strong> usate <strong style="color:#22c55e;">${newCount}</strong> nuove</span>
                 <span class="ops-kpi-label" style="margin:0;"><strong style="color:#1a1a1a;background:#ddd;padding:1px 6px;border-radius:4px;">${darkCount}</strong> scure <strong style="color:#666;background:#f5f5f5;padding:1px 6px;border-radius:4px;">${lightCount}</strong> chiare${unknownColor > 0 ? ' <strong style="color:#5a7a9e;">'+unknownColor+'</strong> n/d' : ''}</span>
-                ${morningAlert > 0 ? '<span class="ops-kpi-label" style="margin:0;color:#ef4444;font-weight:700;"><strong style="font-size:1rem;">⚠ '+morningAlert+'</strong> domani/oggi — avvisare lavaggio!</span>' : ''}
+                ${mondayDeliveries > 0 ? '<span class="ops-kpi-label" style="margin:0;color:#ef4444;font-weight:700;"><strong style="font-size:1rem;">⚠ '+mondayDeliveries+'</strong> lunedì mattina!</span>' : ''}
             </div>
         </div>
     `;
