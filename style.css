@@ -248,8 +248,11 @@ body {
 }
 
 .logo-tesla {
-    height: 28px;
+    height: 22px;
     width: auto;
+    max-width: 140px;
+    max-height: 22px;
+    object-fit: contain;
     flex-shrink: 0;
     filter: drop-shadow(0 0 6px rgba(225, 32, 38, 0.3));
     transition: filter 0.3s ease;
@@ -2756,8 +2759,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .boot-tesla-logo {
-    height: 60px;
+    height: 50px;
     width: auto;
+    max-width: 200px;
+    max-height: 50px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
     filter: drop-shadow(0 0 20px rgba(225,32,38,0.4));
     animation: bootLogoFloat 3s ease-in-out infinite;
 }
