@@ -191,6 +191,9 @@ function handleFile2Merge(jsonData) {
     const col_paymentStatus = findCol(['FinalPaymentStatus']);
     const col_containment = findCol(['IsContainmenthold']);
     const col_lastLocation = findCol(['LastKnownVehicleLocation']);
+    const col_financePartner = findCol(['FinancePartner', 'Finance_Partner', 'Finance Partner', 'Financing Partner']);
+    const col_orderType = findCol(['OrderType', 'Order_Type', 'Order Type', 'Type']);
+    const col_financeStatus = findCol(['FinanceStatus', 'Finance_Status', 'Finance Status', 'LendingStatus', 'Lending_Status', 'Lending Status']);
 
     rawData.forEach(row => {
         const rn = row.reservationNumber;
@@ -219,6 +222,9 @@ function handleFile2Merge(jsonData) {
         if (col_paymentStatus) { row.finalPaymentStatus = String(f2[col_paymentStatus]||'').trim(); }
         if (col_containment) { const v = String(f2[col_containment]||'').trim().toLowerCase(); row.isContainmentHold = (v==='true'||v==='1'||v==='yes'); }
         if (col_lastLocation) { row.lastKnownLocation = String(f2[col_lastLocation]||'').trim(); }
+        if (col_financePartner) { row.financePartner = String(f2[col_financePartner]||'').trim(); }
+        if (col_orderType) { row.orderType = String(f2[col_orderType]||'').trim(); }
+        if (col_financeStatus) { row.financeStatus = String(f2[col_financeStatus]||'').trim(); }
     });
 
     applyFilters();
@@ -892,6 +898,36 @@ function isAtHub(r) {
     return arrival <= today;
 }
 
+// ─── Finance check — single source of truth ─────────────────
+// OrderType non-cash = Tesla Lending, Tesla Leasing, Third Party Leasing, Third Party Lending
+function isFinanced(r) {
+    const ot = (r.orderType || '').toUpperCase();
+    return ot.includes('LENDING') || ot.includes('LEASING') || ot.includes('LEASE') || ot.includes('FINANCE');
+}
+
+// Finance status check: CONFIRMED = ok, APPROVED = quasi, altro = problema
+function getFinanceState(r) {
+    if (!isFinanced(r)) return 'cash'; // No financing needed
+    const fp = (r.financePartner || '').trim();
+    if (!fp || fp === 'N/A' || fp === 'n/a') return 'no_partner'; // Financed but no partner
+    const fs = (r.financeStatus || '').toUpperCase().trim();
+    if (fs === 'CONFIRMED') return 'confirmed';
+    if (fs === 'APPROVED') return 'approved'; // Needs bank confirmation
+    if (fs === 'PENDING' || fs === 'SUBMITTED' || fs === 'IN REVIEW' || fs === 'IN_REVIEW') return 'pending';
+    if (fs === 'REJECTED' || fs === 'DECLINED') return 'rejected';
+    return 'unknown'; // Has partner but unknown status
+}
+
+// Can the vehicle be delivered? Payment + Finance must be ok
+function isDeliveryReady(r) {
+    const ps = (r.finalPaymentStatus || '').trim().toUpperCase();
+    const payOk = ps === 'COMPLETE' || ps === 'PAID' || ps === 'RECEIVED';
+    if (!payOk) return false;
+    const fs = getFinanceState(r);
+    if (fs === 'cash' || fs === 'confirmed') return true;
+    return false; // Financed but not confirmed
+}
+
 // ─── Filters ────────────────────────────────────────────────
 function applyFilters() {
     const locFilter = document.getElementById('filterLocation').value;
@@ -1393,6 +1429,27 @@ function renderSpecialistSection() {
             actions.push({ order: r, urgency: 'high', priority: 3,
                 action: 'Sollecitare pagamento', detail: 'Auto a terra ma ' + (r.finalPaymentStatus || 'INCOMPLETE') + ' — chiamare cliente' });
         }
+        // 3b. HIGH: Finanziamento APPROVED ma non CONFIRMED → sollecitare banca
+        const finState = getFinanceState(r);
+        if (reallyAtHub && finState === 'approved') {
+            actions.push({ order: r, urgency: 'high', priority: 3,
+                action: 'Sollecitare banca — APPROVED', detail: (r.financePartner || '') + ' — pratica approvata, serve conferma per consegnare' });
+        }
+        // 3c. HIGH: Finanziamento PENDING → follow up banca
+        if (reallyAtHub && (finState === 'pending' || finState === 'unknown')) {
+            actions.push({ order: r, urgency: 'high', priority: 3,
+                action: 'Follow up banca', detail: (r.financePartner || '') + ' — pratica ' + (r.financeStatus || 'in attesa') + ', verificare documenti mancanti' });
+        }
+        // 3d. CRITICAL: Finanziamento REJECTED
+        if (reallyAtHub && finState === 'rejected') {
+            actions.push({ order: r, urgency: 'critical', priority: 1,
+                action: 'PRATICA RIFIUTATA', detail: (r.financePartner || '') + ' — ' + (r.financeStatus || 'REJECTED') + ' — contattare cliente urgente' });
+        }
+        // 3e. HIGH: Finanziato ma senza partner
+        if (reallyAtHub && finState === 'no_partner') {
+            actions.push({ order: r, urgency: 'high', priority: 3,
+                action: 'Finance Partner mancante', detail: 'Ordine tipo ' + (r.orderType || '?') + ' ma nessun partner assegnato' });
+        }
         // 4. HIGH: Consegna prima dell'arrivo
         else if (r.deliveryDate && r.date) {
             const del = new Date(r.deliveryDate); del.setHours(0,0,0,0);
@@ -1403,8 +1460,8 @@ function renderSpecialistSection() {
                     action: 'Posticipare consegna +' + delay + 'gg', detail: 'Consegna ' + r.deliveryDateStr + ' ma auto arriva ' + r.dateStr });
             }
         }
-        // 5. MEDIUM: A terra + pagamento ok → pronta per consegna
-        if (reallyAtHub && payComplete === true && !isCH) {
+        // 5. MEDIUM: A terra + delivery ready (payment ok + finance ok) → pronta per consegna
+        if (reallyAtHub && isDeliveryReady(r) && !isCH) {
             actions.push({ order: r, urgency: 'medium', priority: 5,
                 action: 'Schedulare consegna', detail: daysGround + 'gg a terra — ' + (r.isScheduled ? 'Schedulato' : 'DA SCHEDULARE') });
         }
@@ -1541,6 +1598,25 @@ function renderOpsSection() {
             actions.push({ order: r, urgency: 'high', p: 3, spec,
                 action: 'PAGAMENTO ' + (r.finalPaymentStatus || ''), detail: 'Sollecitare cliente', days: daysGround });
         }
+        // Finance checks
+        const finSt = getFinanceState(r);
+        if (reallyAtHub && finSt === 'approved') {
+            actions.push({ order: r, urgency: 'high', p: 3, spec,
+                action: 'BANCA — APPROVED', detail: (r.financePartner||'') + ' approvata, serve conferma', days: daysGround });
+        }
+        if (reallyAtHub && (finSt === 'pending' || finSt === 'unknown')) {
+            actions.push({ order: r, urgency: 'high', p: 3, spec,
+                action: 'BANCA — FOLLOW UP', detail: (r.financePartner||'') + ' ' + (r.financeStatus||'in attesa'), days: daysGround });
+        }
+        if (reallyAtHub && finSt === 'rejected') {
+            actions.push({ order: r, urgency: 'critical', p: 1, spec,
+                action: 'PRATICA RIFIUTATA', detail: (r.financePartner||'') + ' — contattare cliente', days: daysGround });
+            specWorkload[spec].critical++;
+        }
+        if (reallyAtHub && finSt === 'no_partner') {
+            actions.push({ order: r, urgency: 'high', p: 3, spec,
+                action: 'NO FINANCE PARTNER', detail: 'Tipo ' + (r.orderType||'?') + ' senza partner', days: daysGround });
+        }
         if (r.deliveryDate && r.date) {
             const del = new Date(r.deliveryDate); del.setHours(0,0,0,0);
             const arr = new Date(r.date); arr.setHours(0,0,0,0);
@@ -1550,7 +1626,7 @@ function renderOpsSection() {
                     action: 'POSTICIPARE +' + delay + 'gg', detail: 'Consegna prima dell\'arrivo', days: delay });
             }
         }
-        if (reallyAtHub && payComplete === true && !isCH && !r.isScheduled) {
+        if (reallyAtHub && isDeliveryReady(r) && !isCH && !r.isScheduled) {
             actions.push({ order: r, urgency: 'medium', p: 5, spec,
                 action: 'DA SCHEDULARE', detail: 'Pronto — assegnare slot consegna', days: daysGround });
             specWorkload[spec].ready++;
@@ -1680,11 +1756,18 @@ function renderReadySection() {
         return ps === 'COMPLETE' || ps === 'PAID' || ps === 'RECEIVED';
     };
 
-    // Filter: Payment complete + at hub = READY
-    const readyOrders = filteredData.filter(r => isPaymentComplete(r) && isAtHub(r));
+    // Filter: Delivery ready (payment ok + finance confirmed/cash) + at hub = READY
+    const readyOrders = filteredData.filter(r => isDeliveryReady(r) && isAtHub(r));
 
     // Filter: Payment NOT complete + at hub = NEED PAYMENT
     const needPaymentOrders = filteredData.filter(r => !isPaymentComplete(r) && isAtHub(r) && r.finalPaymentStatus);
+
+    // Filter: Finance not confirmed (approved/pending) + at hub + payment ok = NEED FINANCE ACTION
+    const needFinanceOrders = filteredData.filter(r => {
+        if (!isAtHub(r)) return false;
+        const fs = getFinanceState(r);
+        return fs === 'approved' || fs === 'pending' || fs === 'unknown' || fs === 'no_partner' || fs === 'rejected';
+    });
 
     // Show/hide payment section
     const paymentSection = document.getElementById('paymentSection');
