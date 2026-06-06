@@ -225,13 +225,13 @@ function handleFile2Merge(jsonData) {
     applyFilters();
 }
 
-// ─── OPTIMUS INTRO (OPS vs SPECIALIST) ──────────────────────
+// ─── OPTIMUS INTRO (OPS vs ADVISOR) ─────────────────────────
 const OPTIMUS_DATA = [
-    { id: 'ops', name: 'OPS MODE', classType: 'OPERATIONS COMMAND', color: '#a855f7',
+    { id: 'ops', name: 'OPS MODE', classType: 'OPERATIONS SPECIALIST', color: '#a855f7',
       skill1: 'URGENZE HUB', desc1: 'Gestisci tutte le urgenze della tua location',
-      skill2: 'TEAM CONTROL', desc2: 'Monitora il carico di lavoro di ogni specialist',
+      skill2: 'TEAM CONTROL', desc2: 'Monitora il carico di lavoro di ogni advisor',
       requires: 'File 1', locked: false },
-    { id: 'specialist', name: 'SPECIALIST MODE', classType: 'DELIVERY SPECIALIST', color: '#06b6d4',
+    { id: 'specialist', name: 'ADVISOR MODE', classType: 'DELIVERY ADVISOR', color: '#06b6d4',
       skill1: 'TO-DO LIST', desc1: 'Azioni prioritizzate per urgenza sui tuoi ordini',
       skill2: 'CONSEGNE', desc2: 'Veicoli pronti, da schedulare, in arrivo',
       requires: 'File 1', locked: false },
@@ -281,7 +281,7 @@ function deployOptimus() {
         window._deployFilter = { type: 'location', value: hub };
     } else if (d.id === 'specialist') {
         const spec = document.getElementById('specNameSelect').value;
-        if (!spec) { alert('Seleziona uno Specialist dal menu a tendina!'); return; }
+        if (!spec) { alert('Seleziona un Advisor dal menu a tendina!'); return; }
         window._deployFilter = { type: 'specialist', value: spec };
     }
 
@@ -345,7 +345,7 @@ function _populateModeSelectors() {
     const specSel = document.getElementById('specNameSelect');
     if (specSel) {
         const specs = [...new Set(rawData.map(r => r.deliverySpecialist).filter(s => s && s.length > 0))].sort();
-        specSel.innerHTML = '<option value="">Seleziona Specialist...</option>' +
+        specSel.innerHTML = '<option value="">Seleziona Advisor...</option>' +
             specs.map(s => '<option value="' + s + '">' + s + '</option>').join('');
     }
 }
