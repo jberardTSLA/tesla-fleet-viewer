@@ -1019,25 +1019,52 @@ const EMOTE_DANCES = {
 };
 
 // ─── Start/stop emote on character selection ────────────────
+let _savedCssAnimations = []; // Store original CSS animations to restore later
+
 function startEmote(idx) {
     stopEmote();
     const charEl = document.getElementById('char' + idx);
     if (!charEl || typeof gsap === 'undefined') return;
     const factory = EMOTE_DANCES[idx];
     if (!factory) return;
-    setTimeout(() => { _activeEmoteTl = factory(charEl); }, 600);
+
+    setTimeout(() => {
+        // Kill all CSS animations on arms/head so GSAP can control them
+        _savedCssAnimations = [];
+        charEl.querySelectorAll('.arm-left, .arm-right, .optimus-head').forEach(el => {
+            _savedCssAnimations.push({ el: el, anim: el.style.animation || '', transform: el.style.transform || '' });
+            el.style.animation = 'none';
+        });
+        // Also pause the SVG breathing animation
+        const svg = charEl.querySelector('svg');
+        if (svg) {
+            _savedCssAnimations.push({ el: svg, anim: svg.style.animation || '' });
+            svg.style.animation = 'none';
+        }
+
+        _activeEmoteTl = factory(charEl);
+    }, 700);
 }
 
 function stopEmote() {
     if (_activeEmoteTl) { _activeEmoteTl.kill(); _activeEmoteTl = null; }
+
+    // Restore original CSS animations
+    _savedCssAnimations.forEach(item => {
+        item.el.style.animation = item.anim;
+        if (item.transform !== undefined) item.el.style.transform = item.transform;
+    });
+    _savedCssAnimations = [];
+
+    // Clear GSAP transforms
     document.querySelectorAll('.cod-char svg').forEach(svg => {
-        gsap.set(svg, { clearProps: 'x,y,rotation' });
+        gsap.set(svg, { clearProps: 'x,y,rotation,transform' });
     });
     document.querySelectorAll('.cod-char .arm-left, .cod-char .arm-right').forEach(arm => {
-        gsap.set(arm, { clearProps: 'rotation,x,y' });
+        gsap.set(arm, { clearProps: 'all' });
     });
     document.querySelectorAll('.cod-char .optimus-head').forEach(head => {
-        gsap.set(head, { clearProps: 'rotation,x,y' });
+        gsap.set(head, { clearProps: 'all' });
     });
 }
 
