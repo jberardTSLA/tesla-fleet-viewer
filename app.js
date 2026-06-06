@@ -591,7 +591,8 @@ function tryAutoMap(headers) {
         date:             ['vehicleetatoservice', 'vehicle eta to service', 'vehicleeta', 'carrier_eta', 'eta2servicecenter', 'data arrivo', 'arrival date', 'arrival', 'eta', 'data_arrivo', 'arrivo', 'estimated arrival', 'estimated_arrival', 'planned arrival', 'eta date', 'carrier eta', 'scheduled date'],
         deliveryDate:     ['scheduleddeliverydate', 'scheduled delivery date', 'scheduled_delivery_date', 'data consegna', 'delivery date', 'delivery_date', 'consegna', 'data di consegna', 'scheduled delivery', 'data delivery', 'planned delivery', 'customer delivery date', 'handover date', 'handover'],
         model:            ['model', 'modello', 'producttrim', 'product_trim', 'productname', 'veicolo', 'vehicle', 'tipo', 'type', 'prodotto', 'product', 'model name', 'variant', 'trim', 'vehicle model', 'vehicle_model', 'model variant', 'modeltrimname'],
-        status:           ['vehiclestatus', 'vehicle_status', 'vehicle status', 'orderstatus', 'order_status', 'order status', 'registrationstatus', 'registration_status', 'stato', 'status', 'state', 'situazione', 'condizione', 'delivery status', 'transport status'],
+        status:           ['vehiclestatus', 'vehicle_status', 'vehicle status', 'orderstatus', 'order_status', 'order status', 'stato', 'status', 'state', 'situazione', 'condizione', 'delivery status', 'transport status'],
+        registrationStatus: ['registrationstatus', 'registration_status', 'registration status', 'reg status', 'stato registrazione', 'stato immatricolazione'],
     };
 
     // Pass 1: exact match (highest priority)
@@ -691,6 +692,7 @@ function processAndRender() {
         const location = columnMap.location ? String(row[columnMap.location] || '').trim() : 'N/A';
         const model    = columnMap.model    ? String(row[columnMap.model] || '').trim()     : 'N/A';
         const status   = columnMap.status   ? String(row[columnMap.status] || '').trim()    : 'Programmato';
+        const registrationStatus = columnMap.registrationStatus ? String(row[columnMap.registrationStatus] || '').trim() : '';
         const deliverySpecialist = columnMap.deliverySpecialist ? String(row[columnMap.deliverySpecialist] || '').trim() : '';
 
         // Reservation Number & WDO Link
@@ -740,6 +742,7 @@ function processAndRender() {
             model,
             deliverySpecialist,
             status,
+            registrationStatus,
             daysUntil,
             urgency,
         };
@@ -918,14 +921,32 @@ function getFinanceState(r) {
     return 'unknown'; // Has partner but unknown status
 }
 
-// Can the vehicle be delivered? Payment + Finance must be ok
+// Registration status check
+// Not Started → PDVC → Submitted → Completed
+// On Hold = documenti mancanti, Awaiting Registration Fee = pagamento/finance
+function getRegState(r) {
+    const rs = (r.registrationStatus || '').trim().toLowerCase();
+    if (!rs) return 'unknown';
+    if (rs === 'completed') return 'completed';
+    if (rs === 'submitted') return 'submitted';
+    if (rs.includes('pre-delivery') || rs.includes('pdvc') || rs.includes('pre delivery') || rs.includes('validation complete')) return 'pdvc';
+    if (rs === 'on hold' || rs === 'onhold' || rs === 'on_hold') return 'on_hold';
+    if (rs.includes('awaiting') || rs.includes('registration fee')) return 'awaiting_fee';
+    if (rs === 'not started' || rs === 'notstarted' || rs === 'not_started') return 'not_started';
+    return 'unknown';
+}
+
+// Can the vehicle be delivered? Payment + Finance + Registration must be ok
 function isDeliveryReady(r) {
     const ps = (r.finalPaymentStatus || '').trim().toUpperCase();
     const payOk = ps === 'COMPLETE' || ps === 'PAID' || ps === 'RECEIVED';
     if (!payOk) return false;
     const fs = getFinanceState(r);
-    if (fs === 'cash' || fs === 'confirmed') return true;
-    return false; // Financed but not confirmed
+    if (fs !== 'cash' && fs !== 'confirmed') return false;
+    // Registration check: must be Completed or Submitted
+    const rs = getRegState(r);
+    if (rs !== 'unknown' && rs !== 'completed' && rs !== 'submitted') return false;
+    return true;
 }
 
 // ─── Filters ────────────────────────────────────────────────
@@ -1460,6 +1481,25 @@ function renderSpecialistSection() {
                     action: 'Posticipare consegna +' + delay + 'gg', detail: 'Consegna ' + r.deliveryDateStr + ' ma auto arriva ' + r.dateStr });
             }
         }
+        // 4b. Registration status actions
+        const regState = getRegState(r);
+        if (reallyAtHub && regState === 'not_started') {
+            actions.push({ order: r, urgency: 'high', priority: 4,
+                action: 'PDVC da fare', detail: 'Registration Not Started — mancano pagamento, finanziamento o documenti' });
+        }
+        if (reallyAtHub && regState === 'on_hold') {
+            actions.push({ order: r, urgency: 'high', priority: 3,
+                action: 'Documenti mancanti', detail: 'Registration On Hold — pratica tornata indietro, completare documenti' });
+        }
+        if (reallyAtHub && regState === 'awaiting_fee') {
+            const reason = (payComplete === false) ? 'pagamento mancante' : (finState !== 'cash' && finState !== 'confirmed') ? 'finanziamento non firmato' : 'verificare';
+            actions.push({ order: r, urgency: 'high', priority: 3,
+                action: 'Awaiting Registration Fee', detail: reason + ' — ' + (r.financePartner || 'N/A') });
+        }
+        if (reallyAtHub && regState === 'pdvc') {
+            actions.push({ order: r, urgency: 'low', priority: 6,
+                action: 'PDVC inviato', detail: 'In attesa di passare a Submitted — monitorare' });
+        }
         // 5. MEDIUM: A terra + delivery ready (payment ok + finance ok) → pronta per consegna
         if (reallyAtHub && isDeliveryReady(r) && !isCH) {
             actions.push({ order: r, urgency: 'medium', priority: 5,
@@ -1625,6 +1665,20 @@ function renderOpsSection() {
                 actions.push({ order: r, urgency: 'high', p: 4, spec,
                     action: 'POSTICIPARE +' + delay + 'gg', detail: 'Consegna prima dell\'arrivo', days: delay });
             }
+        }
+        // Registration status actions
+        const regSt = getRegState(r);
+        if (reallyAtHub && regSt === 'not_started') {
+            actions.push({ order: r, urgency: 'high', p: 3, spec,
+                action: 'PDVC DA FARE', detail: 'Not Started — manca pagamento/finance/docs', days: daysGround });
+        }
+        if (reallyAtHub && regSt === 'on_hold') {
+            actions.push({ order: r, urgency: 'high', p: 3, spec,
+                action: 'REG ON HOLD', detail: 'Documenti mancanti — completare', days: daysGround });
+        }
+        if (reallyAtHub && regSt === 'awaiting_fee') {
+            actions.push({ order: r, urgency: 'high', p: 3, spec,
+                action: 'AWAITING FEE', detail: 'Pagamento/finance non ok', days: daysGround });
         }
         if (reallyAtHub && isDeliveryReady(r) && !isCH && !r.isScheduled) {
             actions.push({ order: r, urgency: 'medium', p: 5, spec,
