@@ -251,6 +251,12 @@ function selectRoster(idx) {
     const charEl = document.getElementById('char' + idx);
     if (charEl) charEl.classList.add('active');
 
+    // Update color tints
+    const tintRed = document.querySelector('.arena-tint-red');
+    const tintBlue = document.querySelector('.arena-tint-blue');
+    if (tintRed) tintRed.classList.toggle('tint-active', idx === 0);
+    if (tintBlue) tintBlue.classList.toggle('tint-active', idx === 1);
+
     // GSAP switch animation
     if (window.gsapSwitchChar) gsapSwitchChar(idx);
 
