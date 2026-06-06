@@ -1954,8 +1954,6 @@ function renderOpsSection() {
     const lightCount = weekDeliveries.filter(r => r.paintName && !isDark(r.paintName)).length;
     const unknownColor = weekDeliveries.filter(r => !r.paintName).length;
 
-    const vatReducedCount = locOrders.filter(r => (r.specialNeedsTag||'').toLowerCase().includes('vat reduced')).length;
-
     // Morning deliveries (SDD = today or tomorrow)
     const morningAlert = weekDeliveries.filter(r => {
         const dd = new Date(r.deliveryDate); dd.setHours(0,0,0,0);
@@ -1971,7 +1969,6 @@ function renderOpsSection() {
                 <span class="ops-kpi-label" style="margin:0;"><strong style="color:#f97316;">${usedCount}</strong> usate <strong style="color:#22c55e;">${newCount}</strong> nuove</span>
                 <span class="ops-kpi-label" style="margin:0;"><strong style="color:#1a1a1a;background:#ddd;padding:1px 6px;border-radius:4px;">${darkCount}</strong> scure <strong style="color:#666;background:#f5f5f5;padding:1px 6px;border-radius:4px;">${lightCount}</strong> chiare${unknownColor > 0 ? ' <strong style="color:#5a7a9e;">'+unknownColor+'</strong> n/d' : ''}</span>
                 ${morningAlert > 0 ? '<span class="ops-kpi-label" style="margin:0;color:#ef4444;font-weight:700;"><strong style="font-size:1rem;">⚠ '+morningAlert+'</strong> domani/oggi — avvisare lavaggio!</span>' : ''}
-                ${vatReducedCount > 0 ? '<span class="ops-kpi-label" style="margin:0;color:#a855f7;font-weight:700;"><strong>'+vatReducedCount+'</strong> IVA agevolata</span>' : ''}
             </div>
         </div>
     `;
