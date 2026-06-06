@@ -683,9 +683,21 @@
                                     <th>Giorni</th>
                                 </tr>
                             </thead>
-                            <tbody id="opsBody"></tbody>
-                        </table>
+                        <tbody id="opsBody"></tbody>
+                    </table>
+                </div>
+                <div class="ready-pagination">
+                    <div class="page-size-select">
+                        <label>Mostra</label>
+                        <select id="opsPageSize" onchange="changeOpsPageSize()">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="9999">Tutti</option>
+                        </select>
                     </div>
+                    <div class="pagination" id="opsPagination"></div>
+                </div>
                 </div>
             </div>
 

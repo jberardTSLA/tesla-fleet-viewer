@@ -16,6 +16,8 @@ let readyPage = 1;
 let readyPageSize = 50;
 let paymentPage = 1;
 let paymentPageSize = 50;
+let opsPage = 1;
+let opsPageSize = 20;
 
 // Field keys we need
 const FIELDS = [
@@ -1541,17 +1543,29 @@ function renderOpsSection() {
         </div>`;
     }).join('');
 
-    // ── Actions table ──
+    // ── Actions table (paginated) ──
+    window._opsActions = actions; // store for pagination
     document.getElementById('opsActionCount').textContent = actions.length + ' azioni';
+    _renderOpsPage();
+}
+
+function _renderOpsPage() {
+    const actions = window._opsActions || [];
     const urgLabels = { critical: 'CRITICO', high: 'ALTA', medium: 'MEDIA', low: 'INFO' };
     const body = document.getElementById('opsBody');
 
     if (actions.length === 0) {
         body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#22c55e;padding:20px;font-weight:600;">Nessuna urgenza — hub operativo</td></tr>';
+        document.getElementById('opsPagination').innerHTML = '';
         return;
     }
 
-    body.innerHTML = actions.map(a => {
+    const totalPages = Math.ceil(actions.length / opsPageSize);
+    if (opsPage > totalPages) opsPage = 1;
+    const start = (opsPage - 1) * opsPageSize;
+    const pageData = actions.slice(start, start + opsPageSize);
+
+    body.innerHTML = pageData.map(a => {
         const r = a.order;
         const rnCell = r.reservationNumber
             ? `<td><a href="https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=${encodeURIComponent(r.reservationNumber)}" target="_blank" class="wdo-link">${escapeHtml(r.reservationNumber)}</a></td>`
@@ -1567,7 +1581,12 @@ function renderOpsSection() {
             <td style="font-family:var(--font-heading);font-weight:700;color:${a.days>6?'#ef4444':a.days>3?'#f97316':'#8ba3c7'}">${a.days}gg</td>
         </tr>`;
     }).join('');
+
+    renderTablePagination('opsPagination', opsPage, totalPages, 'goOpsPage');
 }
+
+function goOpsPage(p) { opsPage = p; _renderOpsPage(); }
+function changeOpsPageSize() { opsPageSize = parseInt(document.getElementById('opsPageSize').value); opsPage = 1; _renderOpsPage(); }
 
 function exportOpsCSV() {
     const table = document.getElementById('opsTable');
