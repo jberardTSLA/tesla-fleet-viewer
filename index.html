@@ -96,12 +96,17 @@
             OVERVIEW ITALIA
         </button>
 
-        <!-- ARENA: fighting game style with real Optimus image -->
+        <!-- ARENA: single image, lightning divider -->
         <div class="arena">
-            <!-- LEFT: OPS (RED) -->
+            <!-- Full image background -->
+            <div class="arena-image"></div>
+            <!-- Red overlay left half -->
+            <div class="arena-tint arena-tint-red"></div>
+            <!-- Blue overlay right half -->
+            <div class="arena-tint arena-tint-blue"></div>
+
+            <!-- Left clickable: OPS -->
             <div class="arena-side arena-left" id="char0" onclick="selectRoster(0)">
-                <div class="arena-bot-img"></div>
-                <div class="arena-color-overlay arena-red-overlay"></div>
                 <div class="arena-info">
                     <div class="arena-player">PLAYER 1</div>
                     <div class="arena-label">OPS MODE</div>
@@ -110,18 +115,9 @@
                 </div>
             </div>
 
-            <!-- CENTER: VS -->
-            <div class="arena-vs">
-                <div class="arena-vs-lightning"></div>
-                <span class="arena-vs-text">VS</span>
-                <div class="arena-vs-lightning arena-vs-lightning-2"></div>
-            </div>
-
-            <!-- RIGHT: ADVISOR (BLUE) -->
+            <!-- Right clickable: ADVISOR -->
             <div class="arena-side arena-right" id="char1" onclick="selectRoster(1)">
-                <div class="arena-bot-img"></div>
-                <div class="arena-color-overlay arena-blue-overlay"></div>
-                <div class="arena-info">
+                <div class="arena-info arena-info-right">
                     <div class="arena-player">PLAYER 2</div>
                     <div class="arena-label">ADVISOR MODE</div>
                     <div class="arena-desc">Delivery Advisor</div>

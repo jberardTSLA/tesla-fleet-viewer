@@ -1923,80 +1923,83 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     overflow: hidden;
 }
 
-/* Arena layout - fighting game style */
+/* Arena layout - single image, fighting game */
 .arena {
     flex: 1;
     display: flex;
-    flex-direction: row;
     position: relative;
     z-index: 2;
     overflow: hidden;
     min-height: 0;
 }
 
-.arena-side {
-    flex: 1;
-    display: flex;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.5s ease;
-    opacity: 0.6;
-    overflow: hidden;
-}
-
-.arena-side:hover { opacity: 0.8; }
-.arena-side.active { opacity: 1; }
-
-/* Robot image */
-.arena-bot-img {
-    position: absolute;
-    top: 0; bottom: 0;
-    width: 100%;
-    background-image: url('img/optimus.jpg');
-    background-size: cover;
-    background-position: center top;
-    background-repeat: no-repeat;
-    filter: grayscale(0.3) brightness(0.7);
-    transition: all 0.5s ease;
-}
-
-.arena-left .arena-bot-img { background-position: center top; }
-.arena-right .arena-bot-img { background-position: center top; transform: scaleX(-1); }
-
-.arena-side.active .arena-bot-img { filter: grayscale(0) brightness(0.9); }
-
-/* Color overlays */
-.arena-color-overlay {
+/* Single Optimus image covering entire arena */
+.arena-image {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    mix-blend-mode: multiply;
-    opacity: 0.5;
-    transition: opacity 0.5s;
+    background-image: url('img/optimus.jpg');
+    background-size: contain;
+    background-position: center center;
+    background-repeat: no-repeat;
+    mix-blend-mode: screen;
+    opacity: 0.85;
     pointer-events: none;
+    z-index: 1;
 }
 
-.arena-red-overlay { background: linear-gradient(135deg, rgba(180,20,20,0.7) 0%, rgba(60,5,5,0.9) 100%); }
-.arena-blue-overlay { background: linear-gradient(225deg, rgba(20,60,180,0.7) 0%, rgba(5,15,60,0.9) 100%); }
+/* Color tint overlays - left red, right blue */
+.arena-tint {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 50%;
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity 0.5s;
+}
 
-.arena-side.active .arena-color-overlay { opacity: 0.35; }
+.arena-tint-red {
+    left: 0;
+    background: radial-gradient(ellipse at 30% 40%, rgba(180,30,30,0.25) 0%, rgba(80,10,10,0.4) 60%, rgba(3,8,16,0.95) 100%);
+}
 
-/* Info overlay (bottom) */
+.arena-tint-blue {
+    right: 0;
+    background: radial-gradient(ellipse at 70% 40%, rgba(30,60,180,0.25) 0%, rgba(10,20,80,0.4) 60%, rgba(3,8,16,0.95) 100%);
+}
+
+/* Clickable sides */
+.arena-side {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    z-index: 3;
+}
+
+.arena-side:hover { background: rgba(255,255,255,0.03); }
+
+.arena-side.active.arena-left { background: rgba(239,68,68,0.05); }
+.arena-side.active.arena-right { background: rgba(59,130,246,0.05); }
+
+/* Info panel at bottom of each side */
 .arena-info {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    padding: 20px 24px;
-    background: linear-gradient(to top, rgba(3,8,16,0.95) 0%, rgba(3,8,16,0.6) 60%, transparent 100%);
-    z-index: 2;
+    padding: 16px 24px;
+    background: linear-gradient(to top, rgba(3,8,16,0.9) 0%, rgba(3,8,16,0.5) 60%, transparent 100%);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
 }
 
-.arena-right .arena-info { align-items: flex-end; text-align: right; }
+.arena-info-right {
+    align-items: flex-end;
+    text-align: right;
+}
 
 .arena-player {
     font-family: var(--font-heading);
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     letter-spacing: 3px;
     color: #5a7a9e;
     margin-bottom: 2px;
@@ -2004,7 +2007,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .arena-label {
     font-family: var(--font-heading);
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 900;
     letter-spacing: 3px;
     color: #5a7a9e;
@@ -2015,22 +2018,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .arena-right.active .arena-label { color: #3b82f6; text-shadow: 0 0 20px rgba(59,130,246,0.5); }
 
 .arena-desc {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: #3b5a7a;
     letter-spacing: 1px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .arena-select {
-    padding: 8px 16px;
+    padding: 7px 14px;
     width: 100%;
-    max-width: 240px;
+    max-width: 220px;
     background: rgba(10,22,40,0.85);
     color: var(--text-primary);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
     font-family: var(--font-body);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.3s;
 }
@@ -2038,60 +2041,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .arena-select:focus { outline: none; border-color: var(--accent-cyan); box-shadow: 0 0 12px rgba(6,182,212,0.2); }
 .arena-left.active .arena-select { border-color: rgba(239,68,68,0.4); }
 .arena-right.active .arena-select { border-color: rgba(59,130,246,0.4); }
-
-/* VS center divider */
-.arena-vs {
-    position: absolute;
-    top: 0; bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.arena-vs-text {
-    font-family: var(--font-heading);
-    font-size: 2.2rem;
-    font-weight: 900;
-    color: #fff;
-    text-shadow: 0 0 20px rgba(255,255,255,0.5), 0 0 40px rgba(234,179,8,0.3);
-    letter-spacing: 4px;
-    z-index: 2;
-    animation: vsPulse 2s ease-in-out infinite;
-}
-
-.arena-vs-lightning {
-    position: absolute;
-    top: 0; bottom: 0;
-    left: 50%;
-    width: 2px;
-    background: linear-gradient(to bottom,
-        transparent 0%,
-        rgba(239,68,68,0.6) 20%,
-        rgba(255,255,255,0.8) 45%,
-        rgba(234,179,8,1) 50%,
-        rgba(255,255,255,0.8) 55%,
-        rgba(59,130,246,0.6) 80%,
-        transparent 100%
-    );
-    transform: translateX(-50%);
-    animation: lightningFlicker 0.15s ease-in-out infinite alternate;
-}
-
-.arena-vs-lightning-2 {
-    width: 4px;
-    opacity: 0.3;
-    filter: blur(4px);
-    animation-delay: 0.07s;
-}
-
-@keyframes lightningFlicker {
-    0% { opacity: 0.5; transform: translateX(-50%) scaleX(1); }
-    100% { opacity: 1; transform: translateX(-50%) scaleX(1.5); }
-}
 
 /* Overview button (top center) */
 .overview-btn {
