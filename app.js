@@ -246,10 +246,8 @@ function selectRoster(idx) {
     selectedRoster = idx;
     const d = OPTIMUS_DATA[idx];
 
-    // Update character highlights (char0, char1 = normal, char2 = giant)
-    document.querySelectorAll('.cod-char, .cod-char-giant').forEach((c) => {
-        c.classList.remove('active');
-    });
+    // Update highlights
+    document.querySelectorAll('.arena-side, .overview-btn').forEach(c => c.classList.remove('active'));
     const charEl = document.getElementById('char' + idx);
     if (charEl) charEl.classList.add('active');
 

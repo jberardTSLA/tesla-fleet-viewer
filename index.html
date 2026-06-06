@@ -79,240 +79,129 @@
         </div>
     </div>
 
-    <!-- OPTIMUS SELECTION SCREEN — OPS vs SPECIALIST -->
+    <!-- OPTIMUS SELECTION SCREEN — FIGHTING GAME STYLE -->
     <div class="optimus-intro" id="optimusIntro" style="display:none;">
         <canvas id="threeOptimus" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;"></canvas>
         <div class="optimus-stars"></div>
+
+        <!-- Top bar -->
         <div class="cod-header">
             <span class="cod-label">SELEZIONA MODALITA'</span>
             <span class="cod-sub">TESLA FLEET COMMAND</span>
         </div>
-        <div class="cod-layout">
-            <div class="cod-lineup" id="codLineup">
-                <!-- GIANT OVERVIEW ROBOT (background ghost) -->
-                <div class="cod-char-giant" id="char2" onclick="selectRoster(2)">
-                    <svg viewBox="0 0 200 280" xmlns="http://www.w3.org/2000/svg">
-                        <ellipse cx="100" cy="50" rx="32" ry="40" fill="#111" stroke="#1a1a1a" stroke-width="0.8" opacity="0.5"/>
-                        <path d="M68 40 Q100 24 132 40" stroke="#eab308" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6" class="optimus-led"/>
-                        <rect x="76" y="38" width="48" height="12" rx="5" fill="rgba(234,179,8,0.08)" stroke="#eab308" stroke-width="0.5" opacity="0.4"/>
-                        <rect x="90" y="87" width="20" height="14" rx="4" fill="#1a1a1a" opacity="0.4"/>
-                        <path d="M60 101 L140 101 L144 120 Q144 128 140 132 L134 180 L66 180 L60 132 Q56 128 56 120 Z" fill="#d4d4d4" stroke="#aaa" stroke-width="0.5" opacity="0.3"/>
-                        <path d="M60 106 L42 115 L30 145 L34 175" stroke="#d4d4d4" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.25"/>
-                        <path d="M140 106 L158 115 L170 145 L166 175" stroke="#d4d4d4" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.25"/>
-                    </svg>
-                    <span class="cod-giant-label">OVERVIEW</span>
-                </div>
 
-                <!-- ═══ OPS BUST (left, RED) — head+chest+arms, no legs ═══ -->
-                <div class="cod-char cod-char-ops" id="char0" onclick="selectRoster(0)">
-                    <svg viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Head large -->
-                        <g class="optimus-head">
-                            <ellipse cx="110" cy="55" rx="34" ry="42" fill="#111" stroke="#222" stroke-width="1.5"/>
-                            <path d="M76 44 Q110 26 144 44" stroke="#ef4444" stroke-width="3.5" fill="none" stroke-linecap="round" class="optimus-led"/>
-                            <!-- Eye slit -->
-                            <rect x="88" y="50" width="44" height="6" rx="3" fill="rgba(239,68,68,0.08)" stroke="#ef4444" stroke-width="0.6" opacity="0.5"/>
-                            <line x1="94" y1="53" x2="108" y2="53" stroke="#ef4444" stroke-width="0.8" opacity="0.4"/>
-                            <line x1="112" y1="53" x2="126" y2="53" stroke="#ef4444" stroke-width="0.8" opacity="0.4"/>
-                        </g>
-                        <!-- Neck -->
-                        <rect x="98" y="94" width="24" height="16" rx="5" fill="#1a1a1a"/>
-                        <!-- Torso large -->
-                        <path d="M58 110 L162 110 L168 130 Q168 140 164 145 L156 185 L64 185 L56 145 Q52 140 52 130 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="1"/>
-                        <!-- Chest details -->
-                        <circle cx="80" cy="130" r="2" fill="#888"/><circle cx="90" cy="130" r="2" fill="#888"/><circle cx="100" cy="130" r="2" fill="#888"/><circle cx="110" cy="130" r="2" fill="#888"/><circle cx="120" cy="130" r="2" fill="#888"/><circle cx="130" cy="130" r="2" fill="#888"/><circle cx="140" cy="130" r="2" fill="#888"/>
-                        <!-- Red accent lines -->
-                        <line x1="70" y1="155" x2="150" y2="155" stroke="#ef4444" stroke-width="1.2" opacity="0.3"/>
-                        <line x1="72" y1="162" x2="148" y2="162" stroke="#ef4444" stroke-width="1.2" opacity="0.3"/>
-                        <line x1="74" y1="169" x2="146" y2="169" stroke="#ef4444" stroke-width="1" opacity="0.2"/>
-                        <!-- Waist -->
-                        <rect x="64" y="185" width="92" height="22" rx="6" fill="#1a1a1a"/>
-                        <!-- Right arm UP for high-five -->
-                        <g class="arm-right">
-                            <path d="M162 115 L182 105 L198 75 L206 50" stroke="#d4d4d4" stroke-width="10" fill="none" stroke-linecap="round"/>
-                            <path d="M206 50 L212 35" stroke="#1a1a1a" stroke-width="7" fill="none" stroke-linecap="round"/>
-                            <ellipse cx="214" cy="30" rx="8" ry="7" fill="#333" stroke="#ef4444" stroke-width="1.5"/>
-                        </g>
-                        <!-- Left arm relaxed -->
-                        <g class="arm-left">
-                            <path d="M58 115 L38 125 L28 160" stroke="#d4d4d4" stroke-width="10" fill="none" stroke-linecap="round"/>
-                            <path d="M28 160 L34 190" stroke="#1a1a1a" stroke-width="7" fill="none" stroke-linecap="round"/>
-                            <ellipse cx="36" cy="196" rx="7" ry="6" fill="#333"/>
-                        </g>
-                        <!-- Fade bottom -->
-                        <rect x="0" y="200" width="220" height="60" fill="url(#fadeOps)"/>
-                        <defs><linearGradient id="fadeOps" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#030810" stop-opacity="0"/><stop offset="100%" stop-color="#030810" stop-opacity="1"/></linearGradient></defs>
-                    </svg>
-                    <span class="cod-char-name">OPS MODE</span>
-                    <select class="cod-mode-select" id="opsHubSelect" onclick="event.stopPropagation()">
-                        <option value="">Seleziona Hub...</option>
-                    </select>
-                </div>
+        <!-- OVERVIEW button -->
+        <button class="overview-btn" id="char2" onclick="selectRoster(2)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="0" x2="9" y2="4" stroke="currentColor" stroke-width="1"/><line x1="9" y1="14" x2="9" y2="18" stroke="currentColor" stroke-width="1"/><line x1="0" y1="9" x2="4" y2="9" stroke="currentColor" stroke-width="1"/><line x1="14" y1="9" x2="18" y2="9" stroke="currentColor" stroke-width="1"/></svg>
+            OVERVIEW ITALIA
+        </button>
 
-                <!-- ═══ HIGH-FIVE SPARKS (center) ═══ -->
-                <div class="cod-vs">
-                    <div class="cod-highfive">
-                        <svg viewBox="0 0 60 60" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
-                            <polygon points="30,5 34,22 50,15 38,28 55,30 38,33 50,45 34,38 30,55 26,38 10,45 22,33 5,30 22,28 10,15 26,22" fill="none" stroke="#eab308" stroke-width="1" opacity="0.6" class="hf-star"/>
-                            <line x1="30" y1="10" x2="30" y2="2" stroke="#eab308" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <line x1="48" y1="15" x2="54" y2="9" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <line x1="12" y1="15" x2="6" y2="9" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <line x1="50" y1="30" x2="58" y2="30" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <line x1="10" y1="30" x2="2" y2="30" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <circle cx="30" cy="30" r="6" fill="none" stroke="#eab308" stroke-width="1.5" opacity="0.4" class="hf-ring"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <!-- ═══ ADVISOR BUST (right, BLUE, mirrored) ═══ -->
-                <div class="cod-char cod-char-spec" id="char1" onclick="selectRoster(1)">
-                    <svg viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1);">
-                        <!-- Head large -->
-                        <g class="optimus-head">
-                            <ellipse cx="110" cy="55" rx="34" ry="42" fill="#111" stroke="#222" stroke-width="1.5"/>
-                            <path d="M76 44 Q110 26 144 44" stroke="#3b82f6" stroke-width="3.5" fill="none" stroke-linecap="round" class="optimus-led"/>
-                            <!-- Eye slit -->
-                            <rect x="88" y="50" width="44" height="6" rx="3" fill="rgba(59,130,246,0.08)" stroke="#3b82f6" stroke-width="0.6" opacity="0.5"/>
-                            <line x1="94" y1="53" x2="108" y2="53" stroke="#3b82f6" stroke-width="0.8" opacity="0.4"/>
-                            <line x1="112" y1="53" x2="126" y2="53" stroke="#3b82f6" stroke-width="0.8" opacity="0.4"/>
-                            <!-- Headset -->
-                            <line x1="78" y1="42" x2="66" y2="32" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round"/><circle cx="63" cy="29" r="4" fill="none" stroke="#3b82f6" stroke-width="1"/>
-                        </g>
-                        <!-- Neck -->
-                        <rect x="98" y="94" width="24" height="16" rx="5" fill="#1a1a1a"/>
-                        <!-- Torso large -->
-                        <path d="M58 110 L162 110 L168 130 Q168 140 164 145 L156 185 L64 185 L56 145 Q52 140 52 130 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="1"/>
-                        <!-- Chest details -->
-                        <circle cx="80" cy="130" r="2" fill="#888"/><circle cx="90" cy="130" r="2" fill="#888"/><circle cx="100" cy="130" r="2" fill="#888"/><circle cx="110" cy="130" r="2" fill="#888"/><circle cx="120" cy="130" r="2" fill="#888"/><circle cx="130" cy="130" r="2" fill="#888"/><circle cx="140" cy="130" r="2" fill="#888"/>
-                        <!-- Blue accent lines -->
-                        <line x1="70" y1="155" x2="150" y2="155" stroke="#3b82f6" stroke-width="1.2" opacity="0.3"/>
-                        <line x1="72" y1="162" x2="148" y2="162" stroke="#3b82f6" stroke-width="1.2" opacity="0.3"/>
-                        <line x1="74" y1="169" x2="146" y2="169" stroke="#3b82f6" stroke-width="1" opacity="0.2"/>
-                        <!-- Waist -->
-                        <rect x="64" y="185" width="92" height="22" rx="6" fill="#1a1a1a"/>
-                        <!-- Right arm UP for high-five -->
-                        <g class="arm-right">
-                            <path d="M162 115 L182 105 L198 75 L206 50" stroke="#d4d4d4" stroke-width="10" fill="none" stroke-linecap="round"/>
-                            <path d="M206 50 L212 35" stroke="#1a1a1a" stroke-width="7" fill="none" stroke-linecap="round"/>
-                            <ellipse cx="214" cy="30" rx="8" ry="7" fill="#333" stroke="#3b82f6" stroke-width="1.5"/>
-                        </g>
-                        <!-- Left arm with tablet -->
-                        <g class="arm-left">
-                            <path d="M58 115 L38 125 L30 155" stroke="#d4d4d4" stroke-width="10" fill="none" stroke-linecap="round"/>
-                            <path d="M30 155 L28 180" stroke="#1a1a1a" stroke-width="7" fill="none" stroke-linecap="round"/>
-                            <rect x="12" y="160" width="26" height="34" rx="3" fill="#0f1f3d" stroke="#3b82f6" stroke-width="1.2"/>
-                            <line x1="17" y1="170" x2="33" y2="170" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/>
-                            <line x1="17" y1="176" x2="28" y2="176" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/>
-                            <line x1="17" y1="182" x2="31" y2="182" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/>
-                        </g>
-                        <!-- Fade bottom -->
-                        <rect x="0" y="200" width="220" height="60" fill="url(#fadeAdv)"/>
-                        <defs><linearGradient id="fadeAdv" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#030810" stop-opacity="0"/><stop offset="100%" stop-color="#030810" stop-opacity="1"/></linearGradient></defs>
-                    </svg>
-                    <span class="cod-char-name">ADVISOR MODE</span>
-                    <select class="cod-mode-select" id="specNameSelect" onclick="event.stopPropagation()">
-                        <option value="">Seleziona Advisor...</option>
-                    </select>
-                </div>
+        <!-- ARENA: two giant busts, half screen each -->
+        <div class="arena">
+            <!-- LEFT: OPS (RED) -->
+            <div class="arena-side arena-left" id="char0" onclick="selectRoster(0)">
+                <svg class="arena-bot" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="200" cy="80" rx="60" ry="72" fill="#141414" stroke="#222" stroke-width="2"/>
+                    <path d="M155 60 L245 60 L250 80 L248 100 L230 115 L170 115 L152 100 L150 80 Z" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+                    <path d="M162 68 Q200 50 238 68" stroke="#ef4444" stroke-width="4" fill="none" stroke-linecap="round" class="optimus-led"/>
+                    <path d="M170 75 Q200 62 230 75" stroke="#ef4444" stroke-width="1.5" fill="none" opacity="0.4"/>
+                    <ellipse cx="183" cy="82" rx="8" ry="4" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="0.8"/>
+                    <ellipse cx="217" cy="82" rx="8" ry="4" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="0.8"/>
+                    <rect x="178" y="98" width="44" height="8" rx="2" fill="#222" stroke="#333" stroke-width="0.5"/>
+                    <line x1="190" y1="100" x2="190" y2="104" stroke="#444" stroke-width="0.5"/><line x1="200" y1="100" x2="200" y2="104" stroke="#444" stroke-width="0.5"/><line x1="210" y1="100" x2="210" y2="104" stroke="#444" stroke-width="0.5"/>
+                    <rect x="185" y="148" width="30" height="22" rx="6" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+                    <path d="M120 172 L280 172 L290 185 L280 192 L120 192 L110 185 Z" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
+                    <path d="M130 192 L270 192 L278 220 Q280 240 276 255 L268 320 L132 320 L124 255 Q120 240 122 220 Z" fill="#d0d0d0" stroke="#aaa" stroke-width="1"/>
+                    <rect x="148" y="205" width="45" height="50" rx="4" fill="#bbb" stroke="#999" stroke-width="0.8"/>
+                    <rect x="207" y="205" width="45" height="50" rx="4" fill="#bbb" stroke="#999" stroke-width="0.8"/>
+                    <line x1="155" y1="215" x2="185" y2="215" stroke="#888" stroke-width="1"/><line x1="155" y1="222" x2="185" y2="222" stroke="#888" stroke-width="1"/><line x1="155" y1="229" x2="185" y2="229" stroke="#888" stroke-width="1"/>
+                    <line x1="215" y1="215" x2="245" y2="215" stroke="#888" stroke-width="1"/><line x1="215" y1="222" x2="245" y2="222" stroke="#888" stroke-width="1"/><line x1="215" y1="229" x2="245" y2="229" stroke="#888" stroke-width="1"/>
+                    <path d="M190 200 L210 200 L215 230 L200 245 L185 230 Z" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="1"/>
+                    <circle cx="200" cy="220" r="5" fill="rgba(239,68,68,0.3)" stroke="#ef4444" stroke-width="1"/>
+                    <line x1="140" y1="270" x2="260" y2="270" stroke="#ef4444" stroke-width="1.5" opacity="0.3"/>
+                    <line x1="142" y1="280" x2="258" y2="280" stroke="#ef4444" stroke-width="1" opacity="0.2"/>
+                    <rect x="138" y="320" width="124" height="28" rx="6" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+                    <path d="M130 185 L95 195 L70 240 L60 300 L55 350" stroke="#d0d0d0" stroke-width="16" fill="none" stroke-linecap="round"/>
+                    <circle cx="110" cy="195" r="14" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
+                    <rect x="62" y="285" width="18" height="16" rx="4" fill="#1a1a1a"/>
+                    <path d="M55 350 L50 380" stroke="#1a1a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
+                    <ellipse cx="48" cy="388" rx="12" ry="10" fill="#222" stroke="#333" stroke-width="1"/>
+                    <path d="M270 185 L305 195 L330 240 L340 300 L345 350" stroke="#d0d0d0" stroke-width="16" fill="none" stroke-linecap="round"/>
+                    <circle cx="290" cy="195" r="14" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
+                    <rect x="320" y="285" width="18" height="16" rx="4" fill="#1a1a1a"/>
+                    <path d="M345 350 L350 380" stroke="#1a1a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
+                    <ellipse cx="352" cy="388" rx="12" ry="10" fill="#222" stroke="#333" stroke-width="1"/>
+                    <rect x="0" y="400" width="400" height="100" fill="url(#fadeL)"/>
+                    <defs><linearGradient id="fadeL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#030810" stop-opacity="0"/><stop offset="100%" stop-color="#030810"/></linearGradient></defs>
+                </svg>
+                <div class="arena-label">OPS MODE</div>
+                <div class="arena-desc">OPS Coordinator</div>
+                <select class="arena-select" id="opsHubSelect" onclick="event.stopPropagation()"><option value="">Seleziona Hub...</option></select>
             </div>
 
-                <!-- OPS MODE (left, RED) -->
-                <div class="cod-char cod-char-ops" id="char0" onclick="selectRoster(0)">
-                    <svg viewBox="0 0 160 300" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Head -->
-                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#ef4444" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
-                        <!-- Neck -->
-                        <rect x="62" y="60" width="16" height="10" rx="3" fill="#1a1a1a"/>
-                        <!-- Torso -->
-                        <path d="M42 70 L98 70 L101 84 Q101 90 98 93 L93 115 L47 115 L42 93 Q39 90 39 84 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="0.8"/>
-                        <circle cx="58" cy="82" r="1.5" fill="#888"/><circle cx="63" cy="82" r="1.5" fill="#888"/><circle cx="68" cy="82" r="1.5" fill="#888"/><circle cx="73" cy="82" r="1.5" fill="#888"/><circle cx="78" cy="82" r="1.5" fill="#888"/>
-                        <!-- Red stripe accents -->
-                        <line x1="50" y1="100" x2="90" y2="100" stroke="#ef4444" stroke-width="1" opacity="0.4"/>
-                        <line x1="50" y1="105" x2="90" y2="105" stroke="#ef4444" stroke-width="1" opacity="0.4"/>
-                        <rect x="47" y="115" width="46" height="18" rx="4" fill="#1a1a1a"/>
-                        <!-- RIGHT arm UP for high-five -->
-                        <g class="arm-right"><path d="M98 74 L112 65 L124 42 L130 28" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M130 28 L135 18" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="136" cy="14" rx="6" ry="5" fill="#333" stroke="#ef4444" stroke-width="1.2"/></g>
-                        <!-- Left arm relaxed -->
-                        <g class="arm-left"><path d="M42 74 L30 80 L26 100" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M26 100 L30 118" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="31" cy="122" rx="5" ry="4" fill="#222"/></g>
-                        <!-- Legs -->
-                        <path d="M56 133 L53 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="48" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M54 180 L52 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                        <path d="M84 133 L87 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="80" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M86 180 L88 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                        <path d="M44 215 L62 215 L63 224 L43 224 Z" fill="#1a1a1a"/><path d="M80 215 L98 215 L99 224 L79 224 Z" fill="#1a1a1a"/>
-                    </svg>
-                    <span class="cod-char-name">OPS MODE</span>
-                    <select class="cod-mode-select" id="opsHubSelect" onclick="event.stopPropagation()">
-                        <option value="">Seleziona Hub...</option>
-                    </select>
-                </div>
-
-                <!-- HIGH-FIVE sparks in the middle -->
-                <div class="cod-vs">
-                    <div class="cod-highfive">
-                        <svg viewBox="0 0 60 60" width="60" height="60" xmlns="http://www.w3.org/2000/svg">
-                            <!-- Impact star -->
-                            <polygon points="30,5 34,22 50,15 38,28 55,30 38,33 50,45 34,38 30,55 26,38 10,45 22,33 5,30 22,28 10,15 26,22" fill="none" stroke="#eab308" stroke-width="1" opacity="0.6" class="hf-star"/>
-                            <!-- Spark lines -->
-                            <line x1="30" y1="10" x2="30" y2="2" stroke="#eab308" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <line x1="48" y1="15" x2="54" y2="9" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <line x1="12" y1="15" x2="6" y2="9" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <line x1="50" y1="30" x2="58" y2="30" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <line x1="10" y1="30" x2="2" y2="30" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" class="hf-spark"/>
-                            <circle cx="30" cy="30" r="6" fill="none" stroke="#eab308" stroke-width="1.5" opacity="0.4" class="hf-ring"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <!-- ADVISOR MODE (right, BLUE, mirrored) -->
-                <div class="cod-char cod-char-spec" id="char1" onclick="selectRoster(1)">
-                    <svg viewBox="0 0 160 300" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1);">
-                        <!-- Head -->
-                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#3b82f6" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
-                        <!-- Neck -->
-                        <rect x="62" y="60" width="16" height="10" rx="3" fill="#1a1a1a"/>
-                        <!-- Torso -->
-                        <path d="M42 70 L98 70 L101 84 Q101 90 98 93 L93 115 L47 115 L42 93 Q39 90 39 84 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="0.8"/>
-                        <circle cx="58" cy="82" r="1.5" fill="#888"/><circle cx="63" cy="82" r="1.5" fill="#888"/><circle cx="68" cy="82" r="1.5" fill="#888"/><circle cx="73" cy="82" r="1.5" fill="#888"/><circle cx="78" cy="82" r="1.5" fill="#888"/>
-                        <!-- Blue stripe accents -->
-                        <line x1="50" y1="100" x2="90" y2="100" stroke="#3b82f6" stroke-width="1" opacity="0.4"/>
-                        <line x1="50" y1="105" x2="90" y2="105" stroke="#3b82f6" stroke-width="1" opacity="0.4"/>
-                        <rect x="47" y="115" width="46" height="18" rx="4" fill="#1a1a1a"/>
-                        <!-- RIGHT arm UP for high-five (mirrored = left visually) -->
-                        <g class="arm-right"><path d="M98 74 L112 65 L124 42 L130 28" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M130 28 L135 18" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="136" cy="14" rx="6" ry="5" fill="#333" stroke="#3b82f6" stroke-width="1.2"/></g>
-                        <!-- Left arm with tablet -->
-                        <g class="arm-left"><path d="M42 74 L30 80 L26 100" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M26 100 L24 118" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <rect x="10" y="102" width="20" height="26" rx="2" fill="#0f1f3d" stroke="#3b82f6" stroke-width="1"/><line x1="14" y1="110" x2="26" y2="110" stroke="#3b82f6" stroke-width="0.7" opacity="0.5"/><line x1="14" y1="115" x2="22" y2="115" stroke="#3b82f6" stroke-width="0.7" opacity="0.5"/><line x1="14" y1="120" x2="24" y2="120" stroke="#3b82f6" stroke-width="0.7" opacity="0.5"/>
-                        </g>
-                        <!-- Legs -->
-                        <path d="M56 133 L53 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="48" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M54 180 L52 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                        <path d="M84 133 L87 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="80" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M86 180 L88 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                        <path d="M44 215 L62 215 L63 224 L43 224 Z" fill="#1a1a1a"/><path d="M80 215 L98 215 L99 224 L79 224 Z" fill="#1a1a1a"/>
-                    </svg>
-                    <span class="cod-char-name">ADVISOR MODE</span>
-                    <select class="cod-mode-select" id="specNameSelect" onclick="event.stopPropagation()">
-                        <option value="">Seleziona Advisor...</option>
-                    </select>
-                </div>
+            <!-- RIGHT: ADVISOR (BLUE, mirrored) -->
+            <div class="arena-side arena-right" id="char1" onclick="selectRoster(1)">
+                <svg class="arena-bot" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1);">
+                    <ellipse cx="200" cy="80" rx="60" ry="72" fill="#141414" stroke="#222" stroke-width="2"/>
+                    <path d="M155 60 L245 60 L250 80 L248 100 L230 115 L170 115 L152 100 L150 80 Z" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+                    <path d="M162 68 Q200 50 238 68" stroke="#3b82f6" stroke-width="4" fill="none" stroke-linecap="round" class="optimus-led"/>
+                    <path d="M170 75 Q200 62 230 75" stroke="#3b82f6" stroke-width="1.5" fill="none" opacity="0.4"/>
+                    <ellipse cx="183" cy="82" rx="8" ry="4" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="0.8"/>
+                    <ellipse cx="217" cy="82" rx="8" ry="4" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="0.8"/>
+                    <line x1="152" y1="65" x2="135" y2="52" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/><circle cx="131" cy="48" r="6" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                    <rect x="178" y="98" width="44" height="8" rx="2" fill="#222" stroke="#333" stroke-width="0.5"/>
+                    <line x1="190" y1="100" x2="190" y2="104" stroke="#444" stroke-width="0.5"/><line x1="200" y1="100" x2="200" y2="104" stroke="#444" stroke-width="0.5"/><line x1="210" y1="100" x2="210" y2="104" stroke="#444" stroke-width="0.5"/>
+                    <rect x="185" y="148" width="30" height="22" rx="6" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+                    <path d="M120 172 L280 172 L290 185 L280 192 L120 192 L110 185 Z" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
+                    <path d="M130 192 L270 192 L278 220 Q280 240 276 255 L268 320 L132 320 L124 255 Q120 240 122 220 Z" fill="#d0d0d0" stroke="#aaa" stroke-width="1"/>
+                    <rect x="148" y="205" width="45" height="50" rx="4" fill="#bbb" stroke="#999" stroke-width="0.8"/>
+                    <rect x="207" y="205" width="45" height="50" rx="4" fill="#bbb" stroke="#999" stroke-width="0.8"/>
+                    <line x1="155" y1="215" x2="185" y2="215" stroke="#888" stroke-width="1"/><line x1="155" y1="222" x2="185" y2="222" stroke="#888" stroke-width="1"/><line x1="155" y1="229" x2="185" y2="229" stroke="#888" stroke-width="1"/>
+                    <line x1="215" y1="215" x2="245" y2="215" stroke="#888" stroke-width="1"/><line x1="215" y1="222" x2="245" y2="222" stroke="#888" stroke-width="1"/><line x1="215" y1="229" x2="245" y2="229" stroke="#888" stroke-width="1"/>
+                    <path d="M190 200 L210 200 L215 230 L200 245 L185 230 Z" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="1"/>
+                    <circle cx="200" cy="220" r="5" fill="rgba(59,130,246,0.3)" stroke="#3b82f6" stroke-width="1"/>
+                    <line x1="140" y1="270" x2="260" y2="270" stroke="#3b82f6" stroke-width="1.5" opacity="0.3"/>
+                    <line x1="142" y1="280" x2="258" y2="280" stroke="#3b82f6" stroke-width="1" opacity="0.2"/>
+                    <rect x="138" y="320" width="124" height="28" rx="6" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+                    <path d="M130 185 L95 200 L75 250 L65 310" stroke="#d0d0d0" stroke-width="16" fill="none" stroke-linecap="round"/>
+                    <circle cx="110" cy="195" r="14" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
+                    <path d="M65 310 L58 340" stroke="#1a1a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
+                    <rect x="35" y="300" width="35" height="48" rx="4" fill="#0f1f3d" stroke="#3b82f6" stroke-width="1.5"/>
+                    <line x1="42" y1="312" x2="63" y2="312" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/><line x1="42" y1="320" x2="58" y2="320" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/><line x1="42" y1="328" x2="60" y2="328" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/><line x1="42" y1="336" x2="55" y2="336" stroke="#3b82f6" stroke-width="0.8" opacity="0.5"/>
+                    <path d="M270 185 L305 195 L330 240 L340 300 L345 350" stroke="#d0d0d0" stroke-width="16" fill="none" stroke-linecap="round"/>
+                    <circle cx="290" cy="195" r="14" fill="#c0c0c0" stroke="#999" stroke-width="1"/>
+                    <rect x="320" y="285" width="18" height="16" rx="4" fill="#1a1a1a"/>
+                    <path d="M345 350 L350 380" stroke="#1a1a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
+                    <ellipse cx="352" cy="388" rx="12" ry="10" fill="#222" stroke="#333" stroke-width="1"/>
+                    <rect x="0" y="400" width="400" height="100" fill="url(#fadeR)"/>
+                    <defs><linearGradient id="fadeR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#030810" stop-opacity="0"/><stop offset="100%" stop-color="#030810"/></linearGradient></defs>
+                </svg>
+                <div class="arena-label">ADVISOR MODE</div>
+                <div class="arena-desc">Delivery Advisor</div>
+                <select class="arena-select" id="specNameSelect" onclick="event.stopPropagation()"><option value="">Seleziona Advisor...</option></select>
             </div>
-            <!-- Info bar -->
-            <div class="cod-infobar">
-                <div class="cod-infobar-left">
-                    <span class="cod-class-label">SELECTED:</span>
-                    <span class="cod-class-name" id="codInfoName">OPS MODE</span>
-                    <span class="cod-class-desc" id="codInfoDesc">OPERATIONS COMMAND</span>
-                </div>
-                <div class="cod-infobar-abilities">
-                    <div class="cod-mini-ability"><span class="cod-mini-icon">&#9670;</span> <strong id="codMiniSkill1">URGENZE HUB</strong></div>
-                    <div class="cod-mini-ability"><span class="cod-mini-icon">&#9670;</span> <strong id="codMiniSkill2">TEAM CONTROL</strong></div>
-                </div>
-                <button class="cod-deploy-btn" id="codDeployBtn" onclick="deployOptimus()">DEPLOY</button>
-            </div>
-            <div class="cod-req" id="codReq"></div>
         </div>
+
+        <!-- Bottom bar -->
+        <div class="cod-infobar">
+            <div class="cod-infobar-left">
+                <span class="cod-class-label">SELECTED:</span>
+                <span class="cod-class-name" id="codInfoName">OPS MODE</span>
+                <span class="cod-class-desc" id="codInfoDesc">OPS COORDINATOR</span>
+            </div>
+            <div class="cod-infobar-abilities">
+                <div class="cod-mini-ability"><span class="cod-mini-icon">&#9670;</span> <strong id="codMiniSkill1">URGENZE HUB</strong></div>
+                <div class="cod-mini-ability"><span class="cod-mini-icon">&#9670;</span> <strong id="codMiniSkill2">TEAM CONTROL</strong></div>
+            </div>
+            <button class="cod-deploy-btn" id="codDeployBtn" onclick="deployOptimus()">DEPLOY</button>
+        </div>
+        <div class="cod-req" id="codReq"></div>
         <div class="cod-footer">
             <span class="cod-skip" onclick="skipIntro()">SALTA INTRO &raquo;</span>
         </div>
     </div>
 
+    
     <!-- Animated Background Decorations -->
     <div class="bg-decorations">
         <!-- Ship 1 -->
