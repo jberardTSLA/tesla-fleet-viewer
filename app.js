@@ -868,6 +868,7 @@ function applyFilters() {
     renderCharts();
     renderPivotTable();
     renderSpecialistSection();
+    renderOpsSection();
     renderReadySection();
     renderPostponeTable();
     renderArrivalsTable();
@@ -1412,6 +1413,168 @@ function renderSpecialistSection() {
 function exportSpecialistCSV() {
     const table = document.getElementById('specialistTable');
     if (table) downloadTableCSV(table, 'tesla_fleet_specialist_urgenze.csv');
+}
+
+// ─── OPS MODE: Location Operations Dashboard ────────────────
+function renderOpsSection() {
+    const section = document.getElementById('opsSection');
+    if (!section) return;
+
+    const locFilter = document.getElementById('filterLocation').value;
+    if (locFilter === 'all' || !locFilter) {
+        section.style.display = 'none';
+        return;
+    }
+
+    const locOrders = filteredData.filter(r => r.location === locFilter);
+    if (locOrders.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    document.getElementById('opsLocationName').textContent = locFilter;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const hasFile2 = locOrders.some(r => r.finalPaymentStatus !== undefined);
+
+    // ── Classify orders ──
+    let groundCount = 0, transitCount = 0, chCount = 0, payIssueCount = 0;
+    let readyCount = 0, overdueCount = 0, arriving48h = 0;
+    const actions = [];
+    const specWorkload = {};
+
+    locOrders.forEach(r => {
+        const spec = r.deliverySpecialist || 'Non assegnato';
+        if (!specWorkload[spec]) specWorkload[spec] = { total: 0, critical: 0, ready: 0, ground: 0 };
+        specWorkload[spec].total++;
+
+        const arrival = r.date ? new Date(r.date) : null;
+        if (arrival) arrival.setHours(0, 0, 0, 0);
+        const atHub = arrival && arrival <= today;
+        const daysGround = atHub ? Math.round((today - arrival) / 86400000) : 0;
+
+        const pos = (r.lastKnownLocation || '').toLowerCase().trim();
+        const hub = (r.location || '').toLowerCase().trim();
+        const posAtHub = pos && hub && (pos === hub || pos.includes(hub) || hub.includes(pos) || pos === 'at sc');
+        const reallyAtHub = posAtHub || (atHub && !pos);
+
+        const payComplete = hasFile2 ? (['COMPLETE','PAID','RECEIVED'].includes((r.finalPaymentStatus||'').toUpperCase())) : null;
+        const isCH = r.isContainmentHold || false;
+
+        if (reallyAtHub) { groundCount++; specWorkload[spec].ground++; }
+        else transitCount++;
+        if (isCH) chCount++;
+        if (reallyAtHub && payComplete === false) payIssueCount++;
+        if (reallyAtHub && payComplete !== false && !isCH) readyCount++;
+        if (reallyAtHub && daysGround > 6) overdueCount++;
+        if (!reallyAtHub && r.daysUntil !== null && r.daysUntil >= 0 && r.daysUntil <= 2) arriving48h++;
+
+        // Build actions list
+        if (isCH && reallyAtHub) {
+            actions.push({ order: r, urgency: 'critical', p: 1, spec,
+                action: 'CH ATTIVO', detail: 'Risolvere Containment Hold', days: daysGround });
+            specWorkload[spec].critical++;
+        }
+        if (reallyAtHub && daysGround > 6 && !isCH) {
+            actions.push({ order: r, urgency: 'critical', p: 2, spec,
+                action: 'SCADUTO ' + daysGround + 'gg', detail: 'KPI superato — consegnare subito', days: daysGround });
+            specWorkload[spec].critical++;
+        }
+        if (reallyAtHub && payComplete === false) {
+            actions.push({ order: r, urgency: 'high', p: 3, spec,
+                action: 'PAGAMENTO ' + (r.finalPaymentStatus || ''), detail: 'Sollecitare cliente', days: daysGround });
+        }
+        if (r.deliveryDate && r.date) {
+            const del = new Date(r.deliveryDate); del.setHours(0,0,0,0);
+            const arr = new Date(r.date); arr.setHours(0,0,0,0);
+            if (del < arr) {
+                const delay = Math.round((arr - del) / 86400000);
+                actions.push({ order: r, urgency: 'high', p: 4, spec,
+                    action: 'POSTICIPARE +' + delay + 'gg', detail: 'Consegna prima dell\'arrivo', days: delay });
+            }
+        }
+        if (reallyAtHub && payComplete === true && !isCH && !r.isScheduled) {
+            actions.push({ order: r, urgency: 'medium', p: 5, spec,
+                action: 'DA SCHEDULARE', detail: 'Pronto — assegnare slot consegna', days: daysGround });
+            specWorkload[spec].ready++;
+        }
+        if (!reallyAtHub && r.daysUntil !== null && r.daysUntil >= 0 && r.daysUntil <= 2) {
+            actions.push({ order: r, urgency: 'low', p: 6, spec,
+                action: 'ARRIVO ' + (r.daysUntil === 0 ? 'OGGI' : 'tra ' + r.daysUntil + 'gg'), detail: 'Preparare bay + documenti', days: r.daysUntil });
+        }
+    });
+
+    actions.sort((a, b) => a.p - b.p || b.days - a.days);
+
+    // ── KPIs ──
+    document.getElementById('opsKpiGrid').innerHTML = `
+        <div class="ops-kpi"><span class="ops-kpi-val" style="color:#06b6d4;">${locOrders.length}</span><span class="ops-kpi-label">Veicoli totali</span></div>
+        <div class="ops-kpi"><span class="ops-kpi-val" style="color:#22c55e;">${groundCount}</span><span class="ops-kpi-label">A terra</span></div>
+        <div class="ops-kpi"><span class="ops-kpi-val" style="color:#3b82f6;">${transitCount}</span><span class="ops-kpi-label">In transito</span></div>
+        <div class="ops-kpi"><span class="ops-kpi-val" style="color:#eab308;">${arriving48h}</span><span class="ops-kpi-label">Arrivo 48h</span></div>
+        <div class="ops-kpi"><span class="ops-kpi-val" style="color:#22c55e;">${readyCount}</span><span class="ops-kpi-label">Pronti consegna</span></div>
+        <div class="ops-kpi ${overdueCount > 0 ? 'ops-kpi-alert' : ''}"><span class="ops-kpi-val" style="color:#ef4444;">${overdueCount}</span><span class="ops-kpi-label">Scaduti &gt;6gg</span></div>
+        <div class="ops-kpi ${chCount > 0 ? 'ops-kpi-alert' : ''}"><span class="ops-kpi-val" style="color:#ef4444;">${chCount}</span><span class="ops-kpi-label">Containment Hold</span></div>
+        <div class="ops-kpi"><span class="ops-kpi-val" style="color:#f97316;">${payIssueCount}</span><span class="ops-kpi-label">Pagamento NOK</span></div>
+    `;
+
+    // ── Specialist workload cards ──
+    const specColors = ['#3b82f6','#22c55e','#f97316','#a855f7','#06b6d4','#ef4444','#eab308','#ec4899','#14b8a6','#6366f1','#84cc16','#f43f5e'];
+    const specEntries = Object.entries(specWorkload).sort((a, b) => b[1].critical - a[1].critical || b[1].total - a[1].total);
+
+    document.getElementById('opsSpecGrid').innerHTML = specEntries.map(([name, data], i) => {
+        const color = specColors[i % specColors.length];
+        const initials = name.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+        return `<div class="ops-spec-card">
+            <div class="ops-spec-avatar" style="background:${color};">${initials}</div>
+            <div class="ops-spec-info">
+                <div class="ops-spec-name">${escapeHtml(name)}</div>
+                <div class="ops-spec-stats">
+                    <span class="ops-spec-stat"><span class="ops-dot" style="background:#06b6d4;"></span>${data.total}</span>
+                    <span class="ops-spec-stat"><span class="ops-dot" style="background:#22c55e;"></span>${data.ground}</span>
+                    ${data.critical > 0 ? `<span class="ops-spec-stat" style="color:#ef4444;font-weight:700;"><span class="ops-dot" style="background:#ef4444;"></span>${data.critical} urg</span>` : ''}
+                    ${data.ready > 0 ? `<span class="ops-spec-stat" style="color:#eab308;"><span class="ops-dot" style="background:#eab308;"></span>${data.ready} sched</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // ── Actions table ──
+    document.getElementById('opsActionCount').textContent = actions.length + ' azioni';
+    const urgLabels = { critical: 'CRITICO', high: 'ALTA', medium: 'MEDIA', low: 'INFO' };
+    const body = document.getElementById('opsBody');
+
+    if (actions.length === 0) {
+        body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#22c55e;padding:20px;font-weight:600;">Nessuna urgenza — hub operativo</td></tr>';
+        return;
+    }
+
+    body.innerHTML = actions.map(a => {
+        const r = a.order;
+        const rnCell = r.reservationNumber
+            ? `<td><a href="https://dro.tesla.com/advisor?sidepanel_fullscreen=yes&rn=${encodeURIComponent(r.reservationNumber)}" target="_blank" class="wdo-link">${escapeHtml(r.reservationNumber)}</a></td>`
+            : '<td>—</td>';
+        return `<tr class="${a.urgency==='critical'?'row-containment':a.urgency==='high'?'row-imminent':''}">
+            <td><span class="urgency-tag urgency-${a.urgency}">${urgLabels[a.urgency]}</span></td>
+            <td>${escapeHtml(r.orderId)}</td>
+            ${rnCell}
+            <td>${escapeHtml(a.spec)}</td>
+            <td>${escapeHtml(r.model)}</td>
+            <td class="action-text" style="color:${a.urgency==='critical'?'#ef4444':a.urgency==='high'?'#f97316':a.urgency==='medium'?'#eab308':'#3b82f6'}">${escapeHtml(a.action)}</td>
+            <td style="font-size:0.75rem;color:#8ba3c7;">${escapeHtml(a.detail)}</td>
+            <td style="font-family:var(--font-heading);font-weight:700;color:${a.days>6?'#ef4444':a.days>3?'#f97316':'#8ba3c7'}">${a.days}gg</td>
+        </tr>`;
+    }).join('');
+}
+
+function exportOpsCSV() {
+    const table = document.getElementById('opsTable');
+    if (table) {
+        const loc = document.getElementById('opsLocationName').textContent.replace(/\s+/g, '_');
+        downloadTableCSV(table, 'tesla_ops_' + loc + '.csv');
+    }
 }
 
 // ─── Ready to Deliver Section ───────────────────────────────

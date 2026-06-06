@@ -3351,3 +3351,161 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-weight: 600;
     font-size: 0.8rem;
 }
+
+/* ============================================================
+   OPS MODE — Location Operations Dashboard
+   ============================================================ */
+
+.ops-section {
+    margin-bottom: 24px;
+    animation: fadeIn 0.5s ease;
+}
+
+.ops-header-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.ops-badge {
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #a855f7;
+    background: rgba(168,85,247,0.12);
+    border: 1px solid rgba(168,85,247,0.35);
+    padding: 6px 16px;
+    border-radius: 8px;
+    animation: opsBadgePulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+@keyframes opsBadgePulse {
+    0%, 100% { box-shadow: 0 0 4px rgba(168,85,247,0.2); }
+    50% { box-shadow: 0 0 16px rgba(168,85,247,0.5), 0 0 32px rgba(168,85,247,0.15); }
+}
+
+.ops-location-name {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+    flex: 1;
+}
+
+.ops-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.ops-kpi {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.ops-kpi:hover {
+    border-color: var(--border-glow);
+    box-shadow: 0 0 15px rgba(59,130,246,0.1);
+}
+
+.ops-kpi-val {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 800;
+    display: block;
+}
+
+.ops-kpi-label {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 3px;
+    display: block;
+}
+
+.ops-kpi.ops-kpi-alert {
+    border-color: rgba(239,68,68,0.4) !important;
+    animation: kpiFlashRed 1.2s ease-in-out infinite;
+}
+
+.ops-spec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.ops-spec-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s;
+}
+
+.ops-spec-card:hover {
+    border-color: rgba(6,182,212,0.3);
+    box-shadow: 0 0 12px rgba(6,182,212,0.08);
+}
+
+.ops-spec-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 0.8rem;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.ops-spec-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.ops-spec-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ops-spec-stats {
+    display: flex;
+    gap: 8px;
+    margin-top: 3px;
+    font-size: 0.7rem;
+}
+
+.ops-spec-stat {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.ops-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
