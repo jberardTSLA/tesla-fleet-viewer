@@ -79,174 +79,86 @@
         </div>
     </div>
 
-    <!-- OPTIMUS SELECTION SCREEN (CoD Style) -->
+    <!-- OPTIMUS SELECTION SCREEN — OPS vs SPECIALIST -->
     <div class="optimus-intro" id="optimusIntro" style="display:none;">
         <canvas id="threeOptimus" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;"></canvas>
         <div class="optimus-stars"></div>
         <div class="cod-header">
-            <span class="cod-label">SELECT OPERATIVE</span>
+            <span class="cod-label">SELEZIONA MODALITA'</span>
             <span class="cod-sub">TESLA FLEET COMMAND</span>
         </div>
         <div class="cod-layout">
-            <!-- TEAM LINEUP - All 4 robots side by side -->
             <div class="cod-lineup" id="codLineup">
-                <!-- Robot 0: Alpha -->
-                <div class="cod-char" id="char0" onclick="selectRoster(0)">
+                <!-- OPS MODE (left) -->
+                <div class="cod-char cod-char-ops" id="char0" onclick="selectRoster(0)">
                     <svg viewBox="0 0 140 300" xmlns="http://www.w3.org/2000/svg">
-                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#3b82f6" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
+                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#a855f7" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
                         <rect x="62" y="60" width="16" height="10" rx="3" fill="#1a1a1a"/>
                         <path d="M42 70 L98 70 L101 84 Q101 90 98 93 L93 115 L47 115 L42 93 Q39 90 39 84 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="0.8"/>
                         <circle cx="58" cy="82" r="1.5" fill="#888"/><circle cx="63" cy="82" r="1.5" fill="#888"/><circle cx="68" cy="82" r="1.5" fill="#888"/><circle cx="73" cy="82" r="1.5" fill="#888"/><circle cx="78" cy="82" r="1.5" fill="#888"/>
                         <rect x="47" y="115" width="46" height="18" rx="4" fill="#1a1a1a"/>
-                        <!-- Left arm holding POWERWALL MONITOR -->
-                        <g class="arm-left" style="animation: alphaMonitor 3s ease-in-out infinite; transform-origin: 42px 74px;">
-                            <path d="M42 74 L30 78 L24 100 L28 108" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                            <path d="M28 108 L26 125" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <!-- Powerwall tablet -->
-                            <rect x="10" y="105" width="24" height="32" rx="3" fill="#0f1f3d" stroke="#3b82f6" stroke-width="1.5"/>
-                            <rect x="13" y="109" width="18" height="20" rx="1" fill="#0a1628"/>
-                            <line x1="15" y1="115" x2="28" y2="115" stroke="#3b82f6" stroke-width="0.8" opacity="0.6"/>
-                            <line x1="15" y1="119" x2="25" y2="119" stroke="#22c55e" stroke-width="0.8" opacity="0.6"/>
-                            <line x1="15" y1="123" x2="22" y2="123" stroke="#06b6d4" stroke-width="0.8" opacity="0.6"/>
-                            <rect x="15" y="131" width="6" height="3" rx="1" fill="#3b82f6" opacity="0.4"/>
-                        </g>
-                        <!-- Right arm -->
-                        <g class="arm-right"><path d="M98 74 L110 78 L116 100 L112 108" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M112 108 L114 125" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="115" cy="129" rx="5" ry="4" fill="#222"/></g>
-                        <!-- Headset/antenna -->
-                        <line x1="50" y1="25" x2="42" y2="18" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round"/><circle cx="40" cy="16" r="3" fill="none" stroke="#3b82f6" stroke-width="1"/>
-                        <!-- Legs -->
+                        <!-- Right arm extended for arm wrestle -->
+                        <g class="arm-right"><path d="M98 74 L115 68 L128 62 L132 58" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="134" cy="56" rx="5" ry="5" fill="#333" stroke="#a855f7" stroke-width="1"/></g>
+                        <!-- Left arm on hip -->
+                        <g class="arm-left"><path d="M42 74 L30 80 L28 100" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M28 100 L35 115" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/></g>
+                        <!-- Badge on chest -->
+                        <rect x="55" y="85" width="30" height="14" rx="3" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="0.8"/>
+                        <text x="70" y="95" text-anchor="middle" font-size="6" fill="#a855f7" font-family="sans-serif" font-weight="bold">OPS</text>
                         <path d="M56 133 L53 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="48" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M54 180 L52 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
                         <path d="M84 133 L87 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="80" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M86 180 L88 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
                         <path d="M44 215 L62 215 L63 224 L43 224 Z" fill="#1a1a1a"/><path d="M80 215 L98 215 L99 224 L79 224 Z" fill="#1a1a1a"/>
                     </svg>
-                    <span class="cod-char-name">ALPHA</span>
+                    <span class="cod-char-name">OPS MODE</span>
+                    <!-- Hub selector -->
+                    <select class="cod-mode-select" id="opsHubSelect" onclick="event.stopPropagation()">
+                        <option value="">Seleziona Hub...</option>
+                    </select>
                 </div>
 
-                <!-- Robot 1: Bravo -->
-                <div class="cod-char" id="char1" onclick="selectRoster(1)">
-                    <svg viewBox="0 0 140 300" xmlns="http://www.w3.org/2000/svg">
-                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#22c55e" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
-                        <rect x="62" y="60" width="16" height="10" rx="3" fill="#1a1a1a"/>
-                        <path d="M42 70 L98 70 L101 84 Q101 90 98 93 L93 115 L47 115 L42 93 Q39 90 39 84 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="0.8"/>
-                        <circle cx="58" cy="82" r="1.5" fill="#888"/><circle cx="63" cy="82" r="1.5" fill="#888"/><circle cx="68" cy="82" r="1.5" fill="#888"/><circle cx="73" cy="82" r="1.5" fill="#888"/><circle cx="78" cy="82" r="1.5" fill="#888"/>
-                        <!-- Toolbelt -->
-                        <rect x="47" y="115" width="46" height="18" rx="4" fill="#1a1a1a"/>
-                        <rect x="50" y="118" width="8" height="6" rx="1" fill="#333" stroke="#22c55e" stroke-width="0.5" opacity="0.6"/>
-                        <rect x="60" y="118" width="8" height="6" rx="1" fill="#333" stroke="#22c55e" stroke-width="0.5" opacity="0.6"/>
-                        <!-- Left arm with CLIPBOARD -->
-                        <g class="arm-left" style="animation: bravoClip 2.5s ease-in-out infinite; transform-origin: 42px 74px;">
-                            <path d="M42 74 L30 78 L24 100 L28 108" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                            <path d="M28 108 L26 125" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <!-- Clipboard -->
-                            <rect x="12" y="108" width="20" height="28" rx="2" fill="#2a2a2a" stroke="#22c55e" stroke-width="1"/>
-                            <rect x="17" y="106" width="10" height="4" rx="1" fill="#333" stroke="#22c55e" stroke-width="0.5"/>
-                            <path d="M16 115 L19 118 L26 112" stroke="#22c55e" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                            <line x1="16" y1="122" x2="28" y2="122" stroke="#555" stroke-width="0.8"/>
-                            <line x1="16" y1="126" x2="24" y2="126" stroke="#555" stroke-width="0.8"/>
-                            <line x1="16" y1="130" x2="26" y2="130" stroke="#555" stroke-width="0.8"/>
-                        </g>
-                        <!-- Right arm with KEY FOB -->
-                        <g class="arm-right" style="animation: bravoKey 3s ease-in-out infinite; transform-origin: 98px 74px;">
-                            <path d="M98 74 L110 78 L116 100 L112 108" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M112 108 L114 120" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <!-- Tesla Key Card -->
-                            <rect x="108" y="120" width="18" height="11" rx="2" fill="#1a1a1a" stroke="#22c55e" stroke-width="1"/>
-                            <text x="113" y="128" font-size="4" fill="#22c55e" font-family="sans-serif">TESLA</text>
-                        </g>
-                        <path d="M56 133 L53 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="48" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M54 180 L52 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                        <path d="M84 133 L87 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="80" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M86 180 L88 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                        <path d="M44 215 L62 215 L63 224 L43 224 Z" fill="#1a1a1a"/><path d="M80 215 L98 215 L99 224 L79 224 Z" fill="#1a1a1a"/>
-                    </svg>
-                    <span class="cod-char-name">BRAVO</span>
-                    <span class="cod-char-lock" id="charLock1">LOCKED</span>
+                <!-- VS Badge -->
+                <div class="cod-vs">
+                    <span class="cod-vs-text">VS</span>
+                    <div class="cod-vs-sparks"></div>
                 </div>
 
-                <!-- Robot 2: Charlie -->
-                <div class="cod-char" id="char2" onclick="selectRoster(2)">
-                    <svg viewBox="0 0 140 300" xmlns="http://www.w3.org/2000/svg">
-                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#ef4444" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
-                        <rect x="62" y="60" width="16" height="10" rx="3" fill="#1a1a1a"/>
-                        <path d="M42 70 L98 70 L101 84 Q101 90 98 93 L93 115 L47 115 L42 93 Q39 90 39 84 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="0.8"/>
-                        <circle cx="58" cy="82" r="1.5" fill="#888"/><circle cx="63" cy="82" r="1.5" fill="#888"/><circle cx="68" cy="82" r="1.5" fill="#888"/><circle cx="73" cy="82" r="1.5" fill="#888"/><circle cx="78" cy="82" r="1.5" fill="#888"/>
-                        <!-- Warning stripes on torso -->
-                        <line x1="50" y1="100" x2="90" y2="100" stroke="#ef4444" stroke-width="1" opacity="0.3"/>
-                        <line x1="50" y1="105" x2="90" y2="105" stroke="#ef4444" stroke-width="1" opacity="0.3"/>
-                        <rect x="47" y="115" width="46" height="18" rx="4" fill="#1a1a1a"/>
-                        <!-- Left arm raised with BEACON -->
-                        <g class="arm-left" style="animation: charlieBeacon 1.8s ease-in-out infinite; transform-origin: 42px 74px;">
-                            <path d="M42 74 L28 70 L18 55 L20 48" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                            <path d="M20 48 L18 38" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <!-- Warning beacon -->
-                            <polygon points="18,24 12,38 24,38" fill="#ef4444" opacity="0.8"/>
-                            <polygon points="18,24 12,38 24,38" fill="none" stroke="#ff6666" stroke-width="1" class="beacon-flash"/>
-                            <line x1="18" y1="28" x2="18" y2="34" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-                            <circle cx="18" cy="36" r="1" fill="#fff"/>
-                            <!-- Signal waves -->
-                            <path d="M8 28 Q4 22 8 16" stroke="#ef4444" stroke-width="1" fill="none" opacity="0.4" class="signal-wave"/>
-                            <path d="M28 28 Q32 22 28 16" stroke="#ef4444" stroke-width="1" fill="none" opacity="0.4" class="signal-wave"/>
-                        </g>
-                        <!-- Right arm with SHIELD (Powerwall) -->
-                        <g class="arm-right"><path d="M98 74 L112 78 L118 100 L114 108" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M114 108 L116 125" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <!-- Powerwall Shield -->
-                            <rect x="110" y="82" width="22" height="35" rx="3" fill="#1a1a2e" stroke="#ef4444" stroke-width="1.5"/>
-                            <path d="M115 90 L127 90 L127 108 L121 112 L115 108 Z" fill="none" stroke="#ef4444" stroke-width="1" opacity="0.6"/>
-                            <circle cx="121" cy="98" r="3" fill="#ef4444" opacity="0.3"/>
-                        </g>
-                        <path d="M56 133 L53 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="48" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M54 180 L52 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                        <path d="M84 133 L87 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="80" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M86 180 L88 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
-                        <path d="M44 215 L62 215 L63 224 L43 224 Z" fill="#1a1a1a"/><path d="M80 215 L98 215 L99 224 L79 224 Z" fill="#1a1a1a"/>
-                    </svg>
-                    <span class="cod-char-name">CHARLIE</span>
-                </div>
-
-                <!-- Robot 3: Delta -->
-                <div class="cod-char" id="char3" onclick="selectRoster(3)">
-                    <svg viewBox="0 0 140 300" xmlns="http://www.w3.org/2000/svg">
-                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#a855f7" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/>
-                            <!-- Data visor -->
-                            <rect x="52" y="28" width="36" height="10" rx="4" fill="rgba(168,85,247,0.15)" stroke="#a855f7" stroke-width="0.8"/>
-                            <line x1="56" y1="33" x2="64" y2="33" stroke="#a855f7" stroke-width="0.5" opacity="0.6"/>
-                            <line x1="68" y1="33" x2="78" y2="33" stroke="#a855f7" stroke-width="0.5" opacity="0.6"/>
-                            <line x1="80" y1="33" x2="84" y2="33" stroke="#c084fc" stroke-width="0.5" opacity="0.6"/>
-                        </g>
+                <!-- SPECIALIST MODE (right, mirrored) -->
+                <div class="cod-char cod-char-spec" id="char1" onclick="selectRoster(1)">
+                    <svg viewBox="0 0 140 300" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1);">
+                        <g class="optimus-head"><ellipse cx="70" cy="35" rx="22" ry="28" fill="#111" stroke="#1a1a1a" stroke-width="1"/><path d="M48 28 Q70 16 92 28" stroke="#06b6d4" stroke-width="2.5" fill="none" stroke-linecap="round" class="optimus-led"/></g>
                         <rect x="62" y="60" width="16" height="10" rx="3" fill="#1a1a1a"/>
                         <path d="M42 70 L98 70 L101 84 Q101 90 98 93 L93 115 L47 115 L42 93 Q39 90 39 84 Z" fill="#d4d4d4" stroke="#bbb" stroke-width="0.8"/>
                         <circle cx="58" cy="82" r="1.5" fill="#888"/><circle cx="63" cy="82" r="1.5" fill="#888"/><circle cx="68" cy="82" r="1.5" fill="#888"/><circle cx="73" cy="82" r="1.5" fill="#888"/><circle cx="78" cy="82" r="1.5" fill="#888"/>
                         <rect x="47" y="115" width="46" height="18" rx="4" fill="#1a1a1a"/>
-                        <!-- Left arm -->
-                        <g class="arm-left"><path d="M42 74 L30 78 L24 100 L28 108" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M28 108 L26 125" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="25" cy="129" rx="5" ry="4" fill="#222"/></g>
-                        <!-- Right arm with HOLOGRAPHIC LAPTOP -->
-                        <g class="arm-right" style="animation: deltaType 1.5s ease-in-out infinite; transform-origin: 98px 74px;">
-                            <path d="M98 74 L108 80 L112 98 L110 106" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M110 106 L112 116" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <!-- Laptop -->
-                            <rect x="102" y="116" width="28" height="18" rx="2" fill="#0f1f3d" stroke="#a855f7" stroke-width="1"/>
-                            <rect x="105" y="119" width="22" height="12" rx="1" fill="#0a1628"/>
-                            <!-- Holographic chart bars -->
-                            <rect x="108" y="125" width="3" height="5" fill="#a855f7" opacity="0.8"/>
-                            <rect x="113" y="123" width="3" height="7" fill="#c084fc" opacity="0.7"/>
-                            <rect x="118" y="121" width="3" height="9" fill="#a855f7" opacity="0.9"/>
-                            <rect x="123" y="124" width="3" height="6" fill="#c084fc" opacity="0.6"/>
-                            <!-- Holographic projection above -->
-                            <path d="M108 116 L116 100 L130 100 L132 116" stroke="#a855f7" stroke-width="0.5" fill="rgba(168,85,247,0.05)" stroke-dasharray="2 2" class="holo-proj"/>
-                            <circle cx="120" cy="106" r="4" fill="none" stroke="#a855f7" stroke-width="0.5" opacity="0.4" class="holo-proj"/>
-                            <circle cx="124" cy="108" r="2" fill="#a855f7" opacity="0.3" class="holo-proj"/>
+                        <!-- Right arm extended for arm wrestle -->
+                        <g class="arm-right"><path d="M98 74 L115 68 L128 62 L132 58" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="134" cy="56" rx="5" ry="5" fill="#333" stroke="#06b6d4" stroke-width="1"/></g>
+                        <!-- Left arm with clipboard -->
+                        <g class="arm-left"><path d="M42 74 L30 80 L26 100" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M26 100 L24 118" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>
+                            <rect x="10" y="102" width="20" height="26" rx="2" fill="#0f1f3d" stroke="#06b6d4" stroke-width="1"/><line x1="14" y1="110" x2="26" y2="110" stroke="#06b6d4" stroke-width="0.7" opacity="0.5"/><line x1="14" y1="115" x2="22" y2="115" stroke="#06b6d4" stroke-width="0.7" opacity="0.5"/><line x1="14" y1="120" x2="24" y2="120" stroke="#06b6d4" stroke-width="0.7" opacity="0.5"/>
                         </g>
+                        <!-- Badge on chest -->
+                        <rect x="48" y="85" width="44" height="14" rx="3" fill="rgba(6,182,212,0.2)" stroke="#06b6d4" stroke-width="0.8"/>
+                        <text x="70" y="95" text-anchor="middle" font-size="5.5" fill="#06b6d4" font-family="sans-serif" font-weight="bold">SPECIALIST</text>
                         <path d="M56 133 L53 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="48" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M54 180 L52 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
                         <path d="M84 133 L87 172" stroke="#d4d4d4" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="80" y="170" width="12" height="10" rx="3" fill="#1a1a1a"/><path d="M86 180 L88 215" stroke="#d4d4d4" stroke-width="7" fill="none" stroke-linecap="round"/>
                         <path d="M44 215 L62 215 L63 224 L43 224 Z" fill="#1a1a1a"/><path d="M80 215 L98 215 L99 224 L79 224 Z" fill="#1a1a1a"/>
                     </svg>
-                    <span class="cod-char-name">DELTA</span>
+                    <span class="cod-char-name">SPECIALIST MODE</span>
+                    <!-- Specialist selector -->
+                    <select class="cod-mode-select" id="specNameSelect" onclick="event.stopPropagation()">
+                        <option value="">Seleziona Specialist...</option>
+                    </select>
                 </div>
             </div>
-            <!-- Info bar at bottom -->
+            <!-- Info bar -->
             <div class="cod-infobar">
                 <div class="cod-infobar-left">
-                    <span class="cod-class-label">SELECTED CLASS:</span>
-                    <span class="cod-class-name" id="codInfoName">OPTIMUS ALPHA</span>
-                    <span class="cod-class-desc" id="codInfoDesc">LOGISTICS COMMAND</span>
+                    <span class="cod-class-label">SELECTED:</span>
+                    <span class="cod-class-name" id="codInfoName">OPS MODE</span>
+                    <span class="cod-class-desc" id="codInfoDesc">OPERATIONS COMMAND</span>
                 </div>
                 <div class="cod-infobar-abilities">
-                    <div class="cod-mini-ability"><span class="cod-mini-icon">&#9670;</span> <strong id="codMiniSkill1">MONITOR ARRIVI</strong></div>
-                    <div class="cod-mini-ability"><span class="cod-mini-icon">&#9670;</span> <strong id="codMiniSkill2">TIMELINE VIEW</strong></div>
+                    <div class="cod-mini-ability"><span class="cod-mini-icon">&#9670;</span> <strong id="codMiniSkill1">URGENZE HUB</strong></div>
+                    <div class="cod-mini-ability"><span class="cod-mini-icon">&#9670;</span> <strong id="codMiniSkill2">TEAM CONTROL</strong></div>
                 </div>
                 <button class="cod-deploy-btn" id="codDeployBtn" onclick="deployOptimus()">DEPLOY</button>
             </div>

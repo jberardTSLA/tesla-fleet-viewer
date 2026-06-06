@@ -146,6 +146,9 @@ function bootStart() {
         handleFile2Merge(window._bootFile2Data);
     }
 
+    // Populate mode selectors with actual data
+    _populateModeSelectors();
+
     // Transition: boot → optimus selection (GSAP if available)
     if (window.gsapBootToOptimus) {
         gsapBootToOptimus(() => {
@@ -222,23 +225,15 @@ function handleFile2Merge(jsonData) {
     applyFilters();
 }
 
-// ─── OPTIMUS INTRO (CoD Style) ──────────────────────────────
+// ─── OPTIMUS INTRO (OPS vs SPECIALIST) ──────────────────────
 const OPTIMUS_DATA = [
-    { id: 'arrivals', name: 'OPTIMUS ALPHA', classType: 'LOGISTICS COMMAND', color: '#3b82f6',
-      skill1: 'MONITOR ARRIVI', desc1: 'Traccia tutti gli arrivi in tempo reale sugli hub Italia',
-      skill2: 'TIMELINE VIEW', desc2: 'Visualizza la timeline dei prossimi 30 giorni con volumi',
+    { id: 'ops', name: 'OPS MODE', classType: 'OPERATIONS COMMAND', color: '#a855f7',
+      skill1: 'URGENZE HUB', desc1: 'Gestisci tutte le urgenze della tua location',
+      skill2: 'TEAM CONTROL', desc2: 'Monitora il carico di lavoro di ogni specialist',
       requires: 'File 1', locked: false },
-    { id: 'ready', name: 'OPTIMUS BRAVO', classType: 'DELIVERY OPS', color: '#22c55e',
-      skill1: 'CONSEGNE PRONTE', desc1: 'Identifica veicoli a terra con pagamento completo e KPI 6 giorni',
-      skill2: 'GROUND CONTROL', desc2: 'Monitoraggio giorni a terra, scheduling e scadenze',
-      requires: 'File 2', locked: true },
-    { id: 'alerts', name: 'OPTIMUS CHARLIE', classType: 'THREAT DETECTION', color: '#ef4444',
-      skill1: 'CONTAINMENT SCAN', desc1: 'Rileva veicoli con CH attivo e blocchi critici',
-      skill2: 'DELAY ALERT', desc2: 'Segnala ordini da posticipare e consegne in conflitto',
-      requires: 'File 1', locked: false },
-    { id: 'analytics', name: 'OPTIMUS DELTA', classType: 'INTEL ANALYSIS', color: '#a855f7',
-      skill1: 'PIVOT MATRIX', desc1: 'Analisi volumi per Location e Modello con totali',
-      skill2: 'FLEET INTEL', desc2: 'Grafici B2B/B2C, distribuzione modelli, stato ordini',
+    { id: 'specialist', name: 'SPECIALIST MODE', classType: 'DELIVERY SPECIALIST', color: '#06b6d4',
+      skill1: 'TO-DO LIST', desc1: 'Azioni prioritizzate per urgenza sui tuoi ordini',
+      skill2: 'CONSEGNE', desc2: 'Veicoli pronti, da schedulare, in arrivo',
       requires: 'File 1', locked: false },
 ];
 
@@ -277,6 +272,19 @@ function selectRoster(idx) {
 function deployOptimus() {
     const d = OPTIMUS_DATA[selectedRoster];
     if (d.locked) return;
+
+    // Set the appropriate filter based on selected mode
+    if (d.id === 'ops') {
+        const hub = document.getElementById('opsHubSelect').value;
+        if (!hub) { alert('Seleziona un Hub dal menu a tendina!'); return; }
+        // Will set filter after dashboard shows
+        window._deployFilter = { type: 'location', value: hub };
+    } else if (d.id === 'specialist') {
+        const spec = document.getElementById('specNameSelect').value;
+        if (!spec) { alert('Seleziona uno Specialist dal menu a tendina!'); return; }
+        window._deployFilter = { type: 'specialist', value: spec };
+    }
+
     selectOptimus(d.id);
 }
 
@@ -285,20 +293,26 @@ function selectOptimus(section) {
 
     const afterClose = () => {
         intro.style.display = 'none';
-        // Dashboard reveal with GSAP
         if (window.gsapDashboardReveal) gsapDashboardReveal();
-        if (document.getElementById('dashboard').style.display !== 'none') {
-            let targetId = null;
-            switch(section) {
-                case 'arrivals': targetId = 'arrivalsTable'; break;
-                case 'ready': targetId = 'readySection'; break;
-                case 'alerts': targetId = 'postponeSection'; break;
-                case 'analytics': targetId = 'chartByLocation'; break;
+
+        // Apply the pre-selected filter
+        if (window._deployFilter) {
+            const f = window._deployFilter;
+            if (f.type === 'location') {
+                document.getElementById('filterLocation').value = f.value;
+            } else if (f.type === 'specialist') {
+                const specEl = document.getElementById('filterSpecialist');
+                if (specEl) specEl.value = f.value;
             }
-            if (targetId) {
+            window._deployFilter = null;
+            applyFilters();
+
+            // Scroll to the right section
+            const targetId = f.type === 'location' ? 'opsSection' : 'specialistSection';
+            setTimeout(() => {
                 const el = document.getElementById(targetId);
-                if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 600);
-            }
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 800);
         }
     };
 
@@ -318,6 +332,23 @@ function skipIntro() {
 
 // Init first selection
 setTimeout(() => selectRoster(0), 100);
+
+function _populateModeSelectors() {
+    // Hub selector for OPS
+    const hubSel = document.getElementById('opsHubSelect');
+    if (hubSel) {
+        const hubs = [...new Set(rawData.map(r => r.location))].filter(h => h && h !== 'N/A').sort();
+        hubSel.innerHTML = '<option value="">Seleziona Hub...</option>' +
+            hubs.map(h => '<option value="' + h + '">' + h + '</option>').join('');
+    }
+    // Specialist selector
+    const specSel = document.getElementById('specNameSelect');
+    if (specSel) {
+        const specs = [...new Set(rawData.map(r => r.deliverySpecialist).filter(s => s && s.length > 0))].sort();
+        specSel.innerHTML = '<option value="">Seleziona Specialist...</option>' +
+            specs.map(s => '<option value="' + s + '">' + s + '</option>').join('');
+    }
+}
 
 // ─── Initialize ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
