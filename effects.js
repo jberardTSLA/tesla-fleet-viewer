@@ -813,3 +813,238 @@ window.gsapOptimus = function() {
         document.head.appendChild(s);
     }
 })();
+
+// ─── EMOTES: Fortnite-Style Robot Dances ────────────────────
+// Each robot gets a unique dance emote when selected (active).
+// GSAP timelines loop until the character is deselected.
+
+let _activeEmoteTl = null;
+
+const EMOTE_DANCES = {
+
+    // ═══ ALPHA: "The Floss" — arms swing side to side ═══
+    0: function(charEl) {
+        const svg = charEl.querySelector('svg');
+        const armL = svg.querySelector('.arm-left');
+        const armR = svg.querySelector('.arm-right');
+        const head = svg.querySelector('.optimus-head');
+        if (!armL || !armR) return null;
+
+        const tl = gsap.timeline({ repeat: -1 });
+
+        // Body bounce
+        tl.to(svg, { y: -6, duration: 0.15, ease: 'power1.out' }, 0)
+          .to(svg, { y: 0, duration: 0.15, ease: 'power1.in' }, 0.15);
+
+        // Arms floss
+        tl.to(armL, { rotation: 35, x: 15, duration: 0.15, ease: 'power1.inOut', transformOrigin: '42px 74px' }, 0)
+          .to(armR, { rotation: -25, x: -10, duration: 0.15, ease: 'power1.inOut', transformOrigin: '98px 74px' }, 0)
+          .to(armL, { rotation: -35, x: -15, duration: 0.15, ease: 'power1.inOut' }, 0.15)
+          .to(armR, { rotation: 25, x: 10, duration: 0.15, ease: 'power1.inOut' }, 0.15)
+          .to(armL, { rotation: 30, x: 12, duration: 0.15, ease: 'power1.inOut' }, 0.3)
+          .to(armR, { rotation: -20, x: -8, duration: 0.15, ease: 'power1.inOut' }, 0.3)
+          .to(armL, { rotation: -30, x: -12, duration: 0.15, ease: 'power1.inOut' }, 0.45)
+          .to(armR, { rotation: 20, x: 8, duration: 0.15, ease: 'power1.inOut' }, 0.45);
+
+        // Body sway
+        tl.to(svg, { rotation: 3, duration: 0.15, ease: 'power1.inOut', transformOrigin: '70px 133px' }, 0)
+          .to(svg, { rotation: -3, duration: 0.15, ease: 'power1.inOut' }, 0.15)
+          .to(svg, { rotation: 2, duration: 0.15, ease: 'power1.inOut' }, 0.3)
+          .to(svg, { rotation: -2, duration: 0.15, ease: 'power1.inOut' }, 0.45);
+
+        // Head bop
+        if (head) {
+            tl.to(head, { y: -2, duration: 0.15, ease: 'power1.out' }, 0)
+              .to(head, { y: 1, duration: 0.15, ease: 'power1.in' }, 0.15)
+              .to(head, { y: -2, duration: 0.15, ease: 'power1.out' }, 0.3)
+              .to(head, { y: 1, duration: 0.15, ease: 'power1.in' }, 0.45);
+        }
+
+        // LED flash on beat
+        const led = svg.querySelector('.optimus-led');
+        if (led) {
+            tl.to(led, { attr: {'stroke-width': 5}, duration: 0.08, yoyo: true, repeat: 1 }, 0)
+              .to(led, { attr: {'stroke-width': 5}, duration: 0.08, yoyo: true, repeat: 1 }, 0.3);
+        }
+
+        return tl;
+    },
+
+    // ═══ BRAVO: "Orange Justice" — pump fists + lean ═══
+    1: function(charEl) {
+        const svg = charEl.querySelector('svg');
+        const armL = svg.querySelector('.arm-left');
+        const armR = svg.querySelector('.arm-right');
+        const head = svg.querySelector('.optimus-head');
+        if (!armL || !armR) return null;
+
+        const tl = gsap.timeline({ repeat: -1 });
+
+        // Pump up
+        tl.to(armL, { rotation: -60, y: -20, duration: 0.2, ease: 'back.out(2)', transformOrigin: '42px 74px' }, 0)
+          .to(armR, { rotation: 60, y: -20, duration: 0.2, ease: 'back.out(2)', transformOrigin: '98px 74px' }, 0)
+          .to(svg, { y: -8, duration: 0.2, ease: 'power2.out' }, 0);
+
+        // Drop
+        tl.to(armL, { rotation: 15, y: 5, duration: 0.15, ease: 'power2.in' }, 0.2)
+          .to(armR, { rotation: -15, y: 5, duration: 0.15, ease: 'power2.in' }, 0.2)
+          .to(svg, { y: 3, duration: 0.15, ease: 'power2.in' }, 0.2);
+
+        // Lean right + pump
+        tl.to(svg, { rotation: 8, duration: 0.2, ease: 'power1.inOut', transformOrigin: '70px 220px' }, 0.35)
+          .to(armL, { rotation: -50, y: -15, duration: 0.2, ease: 'back.out(1.5)' }, 0.35)
+          .to(armR, { rotation: 50, y: -15, duration: 0.2, ease: 'back.out(1.5)' }, 0.35);
+
+        // Lean left + pump
+        tl.to(svg, { rotation: -8, duration: 0.2, ease: 'power1.inOut' }, 0.55)
+          .to(armL, { rotation: -55, y: -18, duration: 0.2, ease: 'back.out(1.5)' }, 0.55)
+          .to(armR, { rotation: 55, y: -18, duration: 0.2, ease: 'back.out(1.5)' }, 0.55);
+
+        // Reset
+        tl.to(svg, { rotation: 0, y: 0, duration: 0.15, ease: 'power1.out' }, 0.75)
+          .to(armL, { rotation: 0, y: 0, duration: 0.15, ease: 'power1.out' }, 0.75)
+          .to(armR, { rotation: 0, y: 0, duration: 0.15, ease: 'power1.out' }, 0.75);
+
+        // Head wobble
+        if (head) {
+            tl.to(head, { rotation: 5, duration: 0.15, ease: 'power1.inOut', transformOrigin: '70px 50px' }, 0.35)
+              .to(head, { rotation: -5, duration: 0.15, ease: 'power1.inOut' }, 0.55)
+              .to(head, { rotation: 0, duration: 0.1 }, 0.75);
+        }
+
+        return tl;
+    },
+
+    // ═══ CHARLIE: "Take the L" — hold L + pump ═══
+    2: function(charEl) {
+        const svg = charEl.querySelector('svg');
+        const armL = svg.querySelector('.arm-left');
+        const armR = svg.querySelector('.arm-right');
+        const head = svg.querySelector('.optimus-head');
+        if (!armL || !armR) return null;
+
+        const tl = gsap.timeline({ repeat: -1 });
+
+        // Right arm L shape
+        tl.set(armR, { rotation: -70, y: -25, transformOrigin: '98px 74px' });
+
+        // Left arm pumps
+        tl.to(armL, { rotation: 20, y: 8, duration: 0.12, ease: 'power2.in', transformOrigin: '42px 74px' }, 0)
+          .to(armL, { rotation: -10, y: -5, duration: 0.12, ease: 'power2.out' }, 0.12)
+          .to(armL, { rotation: 20, y: 8, duration: 0.12, ease: 'power2.in' }, 0.24)
+          .to(armL, { rotation: -10, y: -5, duration: 0.12, ease: 'power2.out' }, 0.36);
+
+        // Body lean
+        tl.to(svg, { rotation: 5, y: 2, duration: 0.12, ease: 'power1.inOut', transformOrigin: '70px 220px' }, 0)
+          .to(svg, { rotation: -5, y: -2, duration: 0.12, ease: 'power1.inOut' }, 0.12)
+          .to(svg, { rotation: 5, y: 2, duration: 0.12, ease: 'power1.inOut' }, 0.24)
+          .to(svg, { rotation: -5, y: -2, duration: 0.12, ease: 'power1.inOut' }, 0.36)
+          .to(svg, { rotation: 0, y: 0, duration: 0.1 }, 0.48);
+
+        // R arm bounces
+        tl.to(armR, { rotation: -65, duration: 0.12, ease: 'power1.inOut' }, 0)
+          .to(armR, { rotation: -75, duration: 0.12, ease: 'power1.inOut' }, 0.12)
+          .to(armR, { rotation: -65, duration: 0.12, ease: 'power1.inOut' }, 0.24)
+          .to(armR, { rotation: -75, duration: 0.12, ease: 'power1.inOut' }, 0.36);
+
+        // Head bop
+        if (head) {
+            tl.to(head, { y: -3, rotation: 3, duration: 0.12, ease: 'power1.out', transformOrigin: '70px 50px' }, 0)
+              .to(head, { y: 1, rotation: -3, duration: 0.12, ease: 'power1.in' }, 0.12)
+              .to(head, { y: -3, rotation: 3, duration: 0.12, ease: 'power1.out' }, 0.24)
+              .to(head, { y: 1, rotation: -3, duration: 0.12, ease: 'power1.in' }, 0.36)
+              .to(head, { y: 0, rotation: 0, duration: 0.1 }, 0.48);
+        }
+
+        // Beacon flash
+        const beacon = svg.querySelector('.beacon-flash');
+        if (beacon) {
+            tl.to(beacon, { opacity: 1, duration: 0.06, yoyo: true, repeat: 1 }, 0)
+              .to(beacon, { opacity: 1, duration: 0.06, yoyo: true, repeat: 1 }, 0.24);
+        }
+
+        return tl;
+    },
+
+    // ═══ DELTA: "Robot" — mechanical stiff moves ═══
+    3: function(charEl) {
+        const svg = charEl.querySelector('svg');
+        const armL = svg.querySelector('.arm-left');
+        const armR = svg.querySelector('.arm-right');
+        const head = svg.querySelector('.optimus-head');
+        if (!armL || !armR) return null;
+
+        const tl = gsap.timeline({ repeat: -1 });
+
+        // Stiff robot arms
+        tl.to(armL, { rotation: -90, duration: 0.2, ease: 'steps(1)', transformOrigin: '42px 74px' }, 0)
+          .to(armR, { rotation: 0, duration: 0.2, ease: 'steps(1)', transformOrigin: '98px 74px' }, 0)
+          .to(armL, { rotation: 0, duration: 0.2, ease: 'steps(1)' }, 0.3)
+          .to(armR, { rotation: 90, duration: 0.2, ease: 'steps(1)' }, 0.3)
+          .to(armL, { rotation: -90, duration: 0.2, ease: 'steps(1)' }, 0.6)
+          .to(armR, { rotation: 0, duration: 0.2, ease: 'steps(1)' }, 0.6)
+          .to(armL, { rotation: 0, duration: 0.2, ease: 'steps(1)' }, 0.9)
+          .to(armR, { rotation: 90, duration: 0.2, ease: 'steps(1)' }, 0.9);
+
+        // Head snaps
+        if (head) {
+            tl.to(head, { rotation: 15, duration: 0.05, ease: 'steps(1)', transformOrigin: '70px 50px' }, 0)
+              .to(head, { rotation: -15, duration: 0.05, ease: 'steps(1)' }, 0.3)
+              .to(head, { rotation: 10, duration: 0.05, ease: 'steps(1)' }, 0.6)
+              .to(head, { rotation: -10, duration: 0.05, ease: 'steps(1)' }, 0.9);
+        }
+
+        // Mechanical body shift
+        tl.to(svg, { x: 3, y: -4, duration: 0.05, ease: 'steps(1)' }, 0)
+          .to(svg, { x: -3, y: 0, duration: 0.05, ease: 'steps(1)' }, 0.3)
+          .to(svg, { x: 3, y: -4, duration: 0.05, ease: 'steps(1)' }, 0.6)
+          .to(svg, { x: -3, y: 0, duration: 0.05, ease: 'steps(1)' }, 0.9);
+
+        // Holo flicker
+        const holos = svg.querySelectorAll('.holo-proj');
+        holos.forEach(h => {
+            tl.to(h, { opacity: 0.8, duration: 0.1, yoyo: true, repeat: 1 }, 0.15)
+              .to(h, { opacity: 0.8, duration: 0.1, yoyo: true, repeat: 1 }, 0.75);
+        });
+
+        // LED data stream
+        const led = svg.querySelector('.optimus-led');
+        if (led) {
+            tl.to(led, { attr: {'stroke-width': 4}, duration: 0.1, yoyo: true, repeat: 1 }, 0)
+              .to(led, { attr: {'stroke-width': 4}, duration: 0.1, yoyo: true, repeat: 1 }, 0.6);
+        }
+
+        return tl;
+    }
+};
+
+// ─── Start/stop emote on character selection ────────────────
+function startEmote(idx) {
+    stopEmote();
+    const charEl = document.getElementById('char' + idx);
+    if (!charEl || typeof gsap === 'undefined') return;
+    const factory = EMOTE_DANCES[idx];
+    if (!factory) return;
+    setTimeout(() => { _activeEmoteTl = factory(charEl); }, 600);
+}
+
+function stopEmote() {
+    if (_activeEmoteTl) { _activeEmoteTl.kill(); _activeEmoteTl = null; }
+    document.querySelectorAll('.cod-char svg').forEach(svg => {
+        gsap.set(svg, { clearProps: 'x,y,rotation' });
+    });
+    document.querySelectorAll('.cod-char .arm-left, .cod-char .arm-right').forEach(arm => {
+        gsap.set(arm, { clearProps: 'rotation,x,y' });
+    });
+    document.querySelectorAll('.cod-char .optimus-head').forEach(head => {
+        gsap.set(head, { clearProps: 'rotation,x,y' });
+    });
+}
+
+// Hook into character selection — dance starts after switch animation
+const _origSwitchChar = window.gsapSwitchChar;
+window.gsapSwitchChar = function(idx) {
+    stopEmote();
+    if (_origSwitchChar) _origSwitchChar(idx);
+    startEmote(idx);
+};
