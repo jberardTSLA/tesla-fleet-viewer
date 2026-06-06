@@ -1910,6 +1910,51 @@ function renderOpsSection() {
         <div class="ops-kpi"><span class="ops-kpi-val" style="color:${hubMaxDwell > 10 ? '#ef4444' : '#f97316'};">${hubMaxDwell}</span><span class="ops-kpi-label">Dwell max (gg)</span></div>
     `;
 
+    // ── Prep Lavaggio Settimana ──
+    const thisWeekStart = new Date(today); thisWeekStart.setDate(today.getDate() - today.getDay() + 1); // Monday
+    const thisWeekEnd = new Date(thisWeekStart); thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+    thisWeekEnd.setHours(23,59,59);
+
+    const weekDeliveries = locOrders.filter(r => {
+        if (!r.deliveryDate) return false;
+        const dd = new Date(r.deliveryDate);
+        return dd >= thisWeekStart && dd <= thisWeekEnd;
+    });
+
+    const usedCount = weekDeliveries.filter(r => {
+        const ost = (r.orderSalesType || '').toLowerCase();
+        return ost.includes('used') || ost.includes('usato') || ost.includes('pre-owned') || ost.includes('preowned');
+    }).length;
+    const newCount = weekDeliveries.length - usedCount;
+
+    const darkColors = ['black','nero','midnight','cherry','blue','blu','dark','scuro','obsidian','deep blue'];
+    const isDark = (p) => { const low = (p||'').toLowerCase(); return darkColors.some(c => low.includes(c)); };
+    const darkCount = weekDeliveries.filter(r => isDark(r.paintName)).length;
+    const lightCount = weekDeliveries.filter(r => r.paintName && !isDark(r.paintName)).length;
+    const unknownColor = weekDeliveries.filter(r => !r.paintName).length;
+
+    const vatReducedCount = locOrders.filter(r => (r.specialNeedsTag||'').toLowerCase().includes('vat reduced')).length;
+
+    // Morning deliveries (SDD = today or tomorrow)
+    const morningAlert = weekDeliveries.filter(r => {
+        const dd = new Date(r.deliveryDate); dd.setHours(0,0,0,0);
+        const diff = Math.round((dd - today) / 86400000);
+        return diff >= 0 && diff <= 1;
+    }).length;
+
+    document.getElementById('opsKpiGrid').innerHTML += `
+        <div class="ops-kpi" style="grid-column: 1/-1; background:rgba(168,85,247,0.05); border-color:rgba(168,85,247,0.2);">
+            <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;width:100%;">
+                <span class="ops-kpi-label" style="font-size:0.7rem;color:#a855f7;letter-spacing:2px;flex-shrink:0;">PREP LAVAGGIO SETTIMANA</span>
+                <span class="ops-kpi-label" style="margin:0;"><strong style="color:#06b6d4;font-size:1.1rem;">${weekDeliveries.length}</strong> consegne</span>
+                <span class="ops-kpi-label" style="margin:0;"><strong style="color:#f97316;">${usedCount}</strong> usate <strong style="color:#22c55e;">${newCount}</strong> nuove</span>
+                <span class="ops-kpi-label" style="margin:0;"><strong style="color:#1a1a1a;background:#ddd;padding:1px 6px;border-radius:4px;">${darkCount}</strong> scure <strong style="color:#666;background:#f5f5f5;padding:1px 6px;border-radius:4px;">${lightCount}</strong> chiare${unknownColor > 0 ? ' <strong style="color:#5a7a9e;">'+unknownColor+'</strong> n/d' : ''}</span>
+                ${morningAlert > 0 ? '<span class="ops-kpi-label" style="margin:0;color:#ef4444;font-weight:700;"><strong style="font-size:1rem;">⚠ '+morningAlert+'</strong> domani/oggi — avvisare lavaggio!</span>' : ''}
+                ${vatReducedCount > 0 ? '<span class="ops-kpi-label" style="margin:0;color:#a855f7;font-weight:700;"><strong>'+vatReducedCount+'</strong> IVA agevolata</span>' : ''}
+            </div>
+        </div>
+    `;
+
     // ── Specialist workload cards ──
     const specColors = ['#3b82f6','#22c55e','#f97316','#a855f7','#06b6d4','#ef4444','#eab308','#ec4899','#14b8a6','#6366f1','#84cc16','#f43f5e'];
     const specEntries = Object.entries(specWorkload).sort((a, b) => b[1].critical - a[1].critical || b[1].total - a[1].total);
