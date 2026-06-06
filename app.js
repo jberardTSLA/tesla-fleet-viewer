@@ -2021,18 +2021,29 @@ function setGameMessage(msg, type) {
 }
 
 /* ============================================================
-   LIVE MODE — API Fetch Layer
+   LIVE MODE — API Fetch Layer + SSO Scaffold
    Alimenta rawData/columnMap dagli stessi campi usati dall'upload.
    NON modifica processAndRender, applyFilters, handleFile2Merge.
    ============================================================ */
 
 // ─── Live Mode Config ───────────────────────────────────────
 const LIVE_CONFIG = {
-    baseUrl: 'http://localhost:3000',  // Default, configurabile da UI
+    baseUrl: 'http://localhost:3000',      // Default mock, configurabile da UI
     ordersEndpoint: '/api/orders',
     enterpriseEndpoint: '/api/enterprise',
-    refreshIntervalMs: 5 * 60 * 1000, // 5 minuti
-    bearerToken: null,                 // Placeholder per token reale
+    refreshIntervalMs: 5 * 60 * 1000,      // 5 minuti
+    bearerToken: null,                     // Viene settato da SSO flow o manualmente
+    // ─── SSO / OAuth2 Configuration (pronto per ZipLabs) ────
+    sso: {
+        enabled: false,                      // true quando si attiva il flow SSO reale
+        authorizeUrl: '',                    // es: 'https://auth.ziplabs.com/oauth2/authorize'
+        tokenUrl: '',                        // es: 'https://auth.ziplabs.com/oauth2/token'
+        clientId: '',                        // es: 'tesla-fleet-viewer'
+        redirectUri: '',                     // es: window.location.origin + '/callback'
+        scope: 'fleet:read orders:read',
+        responseType: 'code',                // 'code' per Authorization Code flow
+        state: null,                         // Generato per CSRF protection
+    },
 };
 
 let liveMode = false;
@@ -2048,7 +2059,6 @@ function activateLiveMode() {
     if (configPanel.style.display === 'none') {
         configPanel.style.display = 'flex';
         btn.classList.add('active');
-        // Pre-fill from saved config
         const urlInput = document.getElementById('liveApiUrl');
         if (urlInput && LIVE_CONFIG.baseUrl) urlInput.value = LIVE_CONFIG.baseUrl;
     } else {
@@ -2068,6 +2078,12 @@ async function connectLiveMode() {
     connectBtn.disabled = true;
 
     try {
+        // If SSO enabled, start OAuth flow instead
+        if (LIVE_CONFIG.sso.enabled) {
+            _startSSOFlow();
+            return;
+        }
+
         // Health check first
         const healthResp = await fetch(LIVE_CONFIG.baseUrl + '/api/health', {
             headers: _liveAuthHeaders(),
@@ -2079,13 +2095,11 @@ async function connectLiveMode() {
         statusEl.textContent = 'API OK — ' + (health.orders_cached || '?') + ' ordini disponibili';
         statusEl.className = 'boot-live-status connected';
 
-        // Now fetch actual data
+        // Fetch data
         await fetchLiveData();
 
-        // Mark as live mode
+        // Mark live mode + transition
         liveMode = true;
-
-        // Transition to optimus screen like bootStart()
         bootStart();
 
     } catch (err) {
@@ -2146,7 +2160,7 @@ async function fetchLiveData() {
         console.warn('[LIVE] Enterprise endpoint non disponibile, continuo senza:', e2.message);
     }
 
-    // Update last fetch timestamp
+    // Update timestamp
     liveLastFetchTime = new Date();
     _updateLastFetchDisplay();
 }
@@ -2158,6 +2172,10 @@ function startLiveRefresh() {
     // Show live indicators in header
     const liveGroup = document.getElementById('headerLiveGroup');
     if (liveGroup) liveGroup.style.display = 'flex';
+
+    // Mark badge as active
+    const badge = document.getElementById('headerLiveBadge');
+    if (badge) badge.classList.add('active');
 
     // Start countdown
     liveCountdownSeconds = LIVE_CONFIG.refreshIntervalMs / 1000;
@@ -2179,32 +2197,37 @@ function stopLiveRefresh() {
 
 function toggleLiveMode() {
     if (liveMode) {
-        // Disable live mode
         liveMode = false;
         stopLiveRefresh();
         const badge = document.getElementById('headerLiveBadge');
         if (badge) badge.classList.remove('active');
         const statusEl = document.getElementById('dataStatus');
+        statusEl.className = 'header-status active';
         statusEl.innerHTML = '<span class="status-dot"></span><span>' + rawData.length + ' ordini | LIVE disattivato</span>';
     } else {
-        // Re-enable
         liveMode = true;
-        startLiveRefresh();
         const badge = document.getElementById('headerLiveBadge');
         if (badge) badge.classList.add('active');
+        startLiveRefresh();
         _doLiveRefresh();
     }
+}
+
+// Manual refresh button handler
+function manualLiveRefresh() {
+    if (!liveMode) return;
+    _doLiveRefresh();
 }
 
 async function _doLiveRefresh() {
     const statusEl = document.getElementById('dataStatus');
     try {
         statusEl.className = 'header-status active';
-        statusEl.innerHTML = '<span class="status-dot" style="background:#eab308;box-shadow:0 0 8px rgba(234,179,8,0.5);"></span><span>Aggiornamento...</span>';
+        statusEl.innerHTML = '<span class="status-dot" style="background:#eab308;box-shadow:0 0 8px rgba(234,179,8,0.5);animation:pulse 0.5s infinite;"></span><span>Aggiornamento...</span>';
 
         await fetchLiveData();
 
-        // Re-process (calls processAndRender which overwrites rawData with normalized version)
+        // Re-process data through existing pipeline
         processAndRender();
 
         // Merge File 2 if available
@@ -2218,12 +2241,13 @@ async function _doLiveRefresh() {
         // Reset countdown
         liveCountdownSeconds = LIVE_CONFIG.refreshIntervalMs / 1000;
 
+        // Flash update notification
+        _showUpdateNotification();
+
     } catch (err) {
         console.error('[LIVE] Refresh error:', err);
         statusEl.className = 'header-status';
         statusEl.innerHTML = '<span class="status-dot" style="background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.5);"></span><span>Errore API — upload manuale disponibile</span>';
-
-        // Show error toast
         _showLiveError(err.message);
     }
 }
@@ -2247,6 +2271,29 @@ function _updateLastFetchDisplay() {
     }
 }
 
+// ─── Update notification (visual flash on data refresh) ─────
+function _showUpdateNotification() {
+    // Flash the KPI row green briefly
+    const kpiRow = document.querySelector('.kpi-row');
+    if (kpiRow) {
+        kpiRow.classList.add('live-update-flash');
+        setTimeout(() => kpiRow.classList.remove('live-update-flash'), 1500);
+    }
+
+    // Show a brief toast
+    let toast = document.getElementById('liveUpdateToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'liveUpdateToast';
+        toast.className = 'live-update-toast';
+        document.body.appendChild(toast);
+    }
+    const time = liveLastFetchTime ? liveLastFetchTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+    toast.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-5" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Dati aggiornati alle ' + time;
+    toast.style.display = 'flex';
+    setTimeout(() => { if (toast) toast.style.display = 'none'; }, 3000);
+}
+
 // ─── Auth headers builder ───────────────────────────────────
 function _liveAuthHeaders() {
     const headers = { 'Content-Type': 'application/json' };
@@ -2258,7 +2305,6 @@ function _liveAuthHeaders() {
 
 // ─── Error notification ─────────────────────────────────────
 function _showLiveError(message) {
-    // Create a temporary error toast
     let toast = document.getElementById('liveErrorToast');
     if (!toast) {
         toast = document.createElement('div');
@@ -2268,16 +2314,139 @@ function _showLiveError(message) {
     }
     toast.innerHTML = `
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="#ef4444" stroke-width="1.5" fill="rgba(239,68,68,0.1)"/><line x1="9" y1="5" x2="9" y2="10" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="13" r="1" fill="#ef4444"/></svg>
-        <span><strong>API non raggiungibile</strong><br>${message}<br><small>Puoi caricare un file Excel manualmente</small></span>
-        <button onclick="this.parentElement.remove()">OK</button>
+        <span><strong>API non raggiungibile</strong><br>${escapeHtml(message)}<br><small>Puoi caricare un file Excel manualmente</small></span>
+        <button onclick="this.parentElement.style.display='none'">OK</button>
     `;
     toast.style.display = 'flex';
-    // Auto-dismiss after 10s
-    setTimeout(() => { if (toast && toast.parentElement) toast.remove(); }, 10000);
+    setTimeout(() => { if (toast) toast.style.display = 'none'; }, 10000);
 }
 
+// ─── SSO / OAuth2 Scaffold ──────────────────────────────────
+// Pronto per integrazione con ZipLabs SSO. Sostituire i valori
+// in LIVE_CONFIG.sso e settare sso.enabled = true.
+
+function _startSSOFlow() {
+    const cfg = LIVE_CONFIG.sso;
+    if (!cfg.authorizeUrl || !cfg.clientId) {
+        const statusEl = document.getElementById('bootLiveStatus');
+        statusEl.textContent = 'SSO non configurato: mancano authorizeUrl e clientId';
+        statusEl.className = 'boot-live-status error';
+        return;
+    }
+
+    // Generate CSRF state
+    cfg.state = _generateState();
+    sessionStorage.setItem('sso_state', cfg.state);
+
+    // Build authorize URL
+    const params = new URLSearchParams({
+        response_type: cfg.responseType,
+        client_id: cfg.clientId,
+        redirect_uri: cfg.redirectUri || (window.location.origin + window.location.pathname),
+        scope: cfg.scope,
+        state: cfg.state,
+    });
+
+    // Redirect to SSO
+    window.location.href = cfg.authorizeUrl + '?' + params.toString();
+}
+
+// Called on page load to check if returning from SSO redirect
+function _checkSSOCallback() {
+    if (!LIVE_CONFIG.sso.enabled) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const savedState = sessionStorage.getItem('sso_state');
+
+    if (!code) return; // Not a callback
+
+    // Verify CSRF
+    if (state !== savedState) {
+        console.error('[SSO] State mismatch — possible CSRF attack');
+        return;
+    }
+    sessionStorage.removeItem('sso_state');
+
+    // Exchange code for token
+    _exchangeCodeForToken(code);
+
+    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+async function _exchangeCodeForToken(code) {
+    const cfg = LIVE_CONFIG.sso;
+    try {
+        const resp = await fetch(cfg.tokenUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                grant_type: 'authorization_code',
+                code: code,
+                redirect_uri: cfg.redirectUri || (window.location.origin + window.location.pathname),
+                client_id: cfg.clientId,
+            }),
+        });
+        if (!resp.ok) throw new Error('Token exchange failed: ' + resp.status);
+        const tokenData = await resp.json();
+
+        // Store token
+        LIVE_CONFIG.bearerToken = tokenData.access_token;
+        if (tokenData.refresh_token) {
+            sessionStorage.setItem('sso_refresh_token', tokenData.refresh_token);
+        }
+
+        // Auto-connect in live mode
+        liveMode = true;
+        await fetchLiveData();
+        bootStart();
+
+    } catch (err) {
+        console.error('[SSO] Token exchange error:', err);
+        _showLiveError('SSO login fallito: ' + err.message);
+    }
+}
+
+async function _refreshSSOToken() {
+    const cfg = LIVE_CONFIG.sso;
+    const refreshToken = sessionStorage.getItem('sso_refresh_token');
+    if (!refreshToken || !cfg.tokenUrl) return false;
+
+    try {
+        const resp = await fetch(cfg.tokenUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                grant_type: 'refresh_token',
+                refresh_token: refreshToken,
+                client_id: cfg.clientId,
+            }),
+        });
+        if (!resp.ok) return false;
+        const tokenData = await resp.json();
+        LIVE_CONFIG.bearerToken = tokenData.access_token;
+        if (tokenData.refresh_token) {
+            sessionStorage.setItem('sso_refresh_token', tokenData.refresh_token);
+        }
+        return true;
+    } catch (err) {
+        console.error('[SSO] Token refresh failed:', err);
+        return false;
+    }
+}
+
+function _generateState() {
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Check for SSO callback on page load
+document.addEventListener('DOMContentLoaded', () => { _checkSSOCallback(); });
+
 // ─── Hook: start live refresh after deploy ──────────────────
-// Override deployOptimus to also kick off refresh
 const _originalSelectOptimus = selectOptimus;
 selectOptimus = function(section) {
     _originalSelectOptimus(section);
@@ -2291,5 +2460,12 @@ const _originalShowUpload = showUpload;
 showUpload = function() {
     liveMode = false;
     stopLiveRefresh();
+    // Reset live UI in boot screen
+    const configPanel = document.getElementById('bootLiveConfig');
+    if (configPanel) configPanel.style.display = 'none';
+    const liveBtn = document.getElementById('bootLiveBtn');
+    if (liveBtn) liveBtn.classList.remove('active');
+    const liveStatus = document.getElementById('bootLiveStatus');
+    if (liveStatus) { liveStatus.textContent = ''; liveStatus.className = 'boot-live-status'; }
     _originalShowUpload();
 };
