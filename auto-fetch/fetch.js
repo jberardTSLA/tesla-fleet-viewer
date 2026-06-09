@@ -100,7 +100,10 @@ async function main() {
                 await fetchDashboard(page, CONFIG.dashboard2);
             }
 
-            console.log(`[${new Date().toLocaleTimeString()}] Fetch completato!\n`);
+            // ── Carica automaticamente nella Fleet Viewer ──
+            await loadIntoFleetViewer(page);
+
+            console.log(`[${new Date().toLocaleTimeString()}] Fetch + caricamento completato!\n`);
         } catch (err) {
             console.error('[ERRORE]', err.message);
         }
@@ -311,6 +314,84 @@ async function scrapeTableToCSV(page, dashConfig) {
 
 // ─── Utils ──────────────────────────────────────────────────
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── Carica CSV nella Fleet Viewer ──────────────────────────
+async function loadIntoFleetViewer(page) {
+    const fleetViewerUrl = 'https://jberardtsla.github.io/tesla-fleet-viewer/';
+    const file1Path = path.resolve(CONFIG.outputDir, CONFIG.dashboard1.outputFile);
+    const file2Path = path.resolve(CONFIG.outputDir, CONFIG.dashboard2.outputFile);
+
+    const file1Exists = fs.existsSync(file1Path);
+    const file2Exists = fs.existsSync(file2Path);
+
+    if (!file1Exists) {
+        console.log('[FLEET] File 1 non trovato, skip caricamento');
+        return;
+    }
+
+    console.log('[FLEET] Apro Fleet Viewer...');
+    await page.goto(fleetViewerUrl, { waitUntil: 'networkidle2' });
+    await sleep(3000);
+
+    // Carica File 1 (Ordini) nello slot 1
+    try {
+        const fileInput1 = await page.$('#bootFile1');
+        if (fileInput1) {
+            await fileInput1.uploadFile(file1Path);
+            console.log('[FLEET] ✓ File 1 caricato: ' + CONFIG.dashboard1.outputFile);
+            await sleep(2000);
+        } else {
+            console.log('[FLEET] ✗ Input #bootFile1 non trovato');
+            return;
+        }
+    } catch (e) {
+        console.log('[FLEET] Errore caricamento File 1:', e.message);
+        return;
+    }
+
+    // Carica File 2 (Enterprise) nello slot 2
+    if (file2Exists) {
+        try {
+            const fileInput2 = await page.$('#bootFile2');
+            if (fileInput2) {
+                await fileInput2.uploadFile(file2Path);
+                console.log('[FLEET] ✓ File 2 caricato: ' + CONFIG.dashboard2.outputFile);
+                await sleep(2000);
+            }
+        } catch (e) {
+            console.log('[FLEET] Errore caricamento File 2:', e.message);
+        }
+    }
+
+    // Clicca "INIZIALIZZARE SISTEMA"
+    await sleep(1000);
+    try {
+        const startBtn = await page.$('#bootStartBtn');
+        if (startBtn) {
+            const isDisabled = await page.evaluate(btn => btn.disabled, startBtn);
+            if (!isDisabled) {
+                await startBtn.click();
+                console.log('[FLEET] ✓ INIZIALIZZARE SISTEMA cliccato');
+                await sleep(3000);
+
+                // Skip intro (clicca SALTA INTRO)
+                try {
+                    const skipBtn = await page.$('.cod-skip');
+                    if (skipBtn) {
+                        await skipBtn.click();
+                        console.log('[FLEET] ✓ Intro saltata');
+                    }
+                } catch (e) {}
+
+                console.log('[FLEET] ✓ Dashboard caricata con successo!');
+            } else {
+                console.log('[FLEET] ✗ Bottone ancora disabilitato — file non riconosciuto?');
+            }
+        }
+    } catch (e) {
+        console.log('[FLEET] Errore avvio:', e.message);
+    }
+}
 
 // ─── Start ──────────────────────────────────────────────────
 main().catch(console.error);
