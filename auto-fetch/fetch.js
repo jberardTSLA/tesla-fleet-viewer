@@ -39,7 +39,7 @@ const CONFIG = {
     chromeProfile: path.join(__dirname, 'chrome-profile'),
 
     // Intervallo di refresh (minuti). 0 = singolo fetch
-    refreshMinutes: 0,
+    refreshMinutes: 5,
 
     // Timeout per caricamento pagina (ms)
     timeout: 60000,
@@ -128,7 +128,6 @@ async function fetchDashboard(page, dashConfig) {
     // Se c'è un tab specifico, cliccaci
     if (dashConfig.tabName) {
         try {
-            // Superset usa tab con testo visibile
             const tabs = await page.$$('.ant-tabs-tab, [role="tab"], .dashboard-component-tabs .tab');
             for (const tab of tabs) {
                 const text = await page.evaluate(el => el.textContent.trim(), tab);
@@ -142,6 +141,42 @@ async function fetchDashboard(page, dashConfig) {
         } catch (e) {
             console.log(`  Tab "${dashConfig.tabName}" non trovato, continuo...`);
         }
+    }
+
+    // Force Refresh di tutte le chart nella pagina
+    try {
+        // Metodo 1: Bottone "Force refresh" nella toolbar Superset
+        const refreshBtn = await page.$('[data-test="refresh-dashboard-menu-item"], [aria-label="Refresh dashboard"], .fa-refresh, [data-test="force-refresh"]');
+        if (refreshBtn) {
+            await refreshBtn.click();
+            console.log('  Force Refresh dashboard cliccato');
+            await sleep(8000);
+        } else {
+            // Metodo 2: Shortcut — apri menu "..." della dashboard e clicca refresh
+            const moreMenu = await page.$('.header-with-actions [data-test="more-horiz"], .dashboard-header .anticon-more, [aria-label="More actions"]');
+            if (moreMenu) {
+                await moreMenu.click();
+                await sleep(1000);
+                const items = await page.$$('.ant-dropdown-menu-item, [role="menuitem"]');
+                for (const item of items) {
+                    const text = await page.evaluate(el => el.textContent.trim().toLowerCase(), item);
+                    if (text.includes('force refresh') || text.includes('refresh')) {
+                        await item.click();
+                        console.log('  Force Refresh via menu cliccato');
+                        await sleep(8000);
+                        break;
+                    }
+                }
+            }
+        }
+        // Metodo 3: Keyboard shortcut (Superset supporta Ctrl+Shift+L per refresh)
+        // await page.keyboard.down('Control');
+        // await page.keyboard.down('Shift');
+        // await page.keyboard.press('KeyL');
+        // await page.keyboard.up('Shift');
+        // await page.keyboard.up('Control');
+    } catch (e) {
+        console.log('  Force Refresh non trovato, i dati potrebbero essere cached');
     }
 
     // Trova la tabella/chart e esporta CSV
