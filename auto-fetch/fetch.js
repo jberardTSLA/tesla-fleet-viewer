@@ -20,7 +20,7 @@ const fs = require('fs');
 const CONFIG = {
     // URL delle due dashboard ZipLabs
     dashboard1: {
-        url: 'INCOLLA_QUI_URL_DASHBOARD_BACKLOG',  // ← Delivery Tracker CentroSud, tab Backlog
+        url: 'https://ziplabs.teslamotors.com/superset/dashboard/17481/',
         tabName: 'Backlog',
         chartTitle: 'Tutti gli ordini con telaio in Italia',
         outputFile: 'file1_ordini.csv',
