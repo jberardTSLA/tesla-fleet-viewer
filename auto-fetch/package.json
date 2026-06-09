@@ -1,0 +1,12 @@
+{
+  "name": "tesla-fleet-auto-fetch",
+  "version": "1.0.0",
+  "description": "Auto-fetch data from ZipLabs Superset for Tesla Fleet Viewer",
+  "scripts": {
+    "start": "node fetch.js",
+    "login": "node fetch.js --login-only"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}
