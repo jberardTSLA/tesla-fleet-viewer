@@ -828,7 +828,6 @@ function processAndRender() {
             financialSolutionStatus,
             smpLink,
             dwell: _calcDwell(dateObj, deliveryDateObj, matchDate, scArrivalDate, fleetReleaseDate, actualDeliveryDate),
-            daysToDeliver: _calcDaysToDeliver(orderPlacedDate, actualDeliveryDate),
             daysUntil,
             urgency,
         };
@@ -1125,17 +1124,6 @@ function _calcDwell(arrivalDate, deliveryDate, matchDate, scArrivalDate, fleetRe
     // If not delivered, dwell = today - start (ongoing)
     if (startDate <= today) return Math.round((today - startDate) / 86400000);
     return 0;
-}
-
-// Days to Deliver = da OrderPlacedDate a consegna (o oggi se non consegnato)
-function _calcDaysToDeliver(orderPlacedDate, actualDeliveryDate) {
-    if (!orderPlacedDate) return null;
-    const today = new Date(); today.setHours(0,0,0,0);
-    const start = new Date(orderPlacedDate); start.setHours(0,0,0,0);
-    const end = actualDeliveryDate ? new Date(actualDeliveryDate) : today;
-    end.setHours(0,0,0,0);
-    if (end < start) return 0;
-    return Math.round((end - start) / 86400000);
 }
 
 // ─── Filters ────────────────────────────────────────────────
@@ -1727,10 +1715,6 @@ function renderSpecialistSection() {
     const dwellValues = specOrders.filter(r => r.dwell !== null && r.dwell > 0).map(r => r.dwell);
     const avgDwell = dwellValues.length > 0 ? Math.round(dwellValues.reduce((a,b) => a+b, 0) / dwellValues.length) : 0;
 
-    // Days to Deliver medio (KPI ufficiale: da OrderPlacedDate)
-    const dtdValues = specOrders.filter(r => r.daysToDeliver !== null && r.daysToDeliver > 0).map(r => r.daysToDeliver);
-    const avgDTD = dtdValues.length > 0 ? Math.round(dtdValues.reduce((a,b) => a+b, 0) / dtdValues.length) : 0;
-
     kpiRow.innerHTML = `
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#06b6d4;">${totalOrders}</span><span class="spec-kpi-label">Ordini totali</span></div>
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#ef4444;">${criticalCount}</span><span class="spec-kpi-label">Critici</span></div>
@@ -1738,7 +1722,6 @@ function renderSpecialistSection() {
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#eab308;">${mediumCount}</span><span class="spec-kpi-label">Da schedulare</span></div>
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#22c55e;">${groundCount}</span><span class="spec-kpi-label">A terra</span></div>
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:${avgDwell > 6 ? '#ef4444' : avgDwell > 3 ? '#f97316' : '#3b82f6'};">${avgDwell}</span><span class="spec-kpi-label">Dwell medio (gg)</span></div>
-        <div class="spec-kpi"><span class="spec-kpi-val" style="color:${avgDTD > 30 ? '#ef4444' : avgDTD > 14 ? '#f97316' : '#06b6d4'};">${avgDTD}</span><span class="spec-kpi-label">Days to Deliver</span></div>
         <div class="spec-kpi"><span class="spec-kpi-val" style="color:#3b82f6;">${actions.length}</span><span class="spec-kpi-label">Azioni da fare</span></div>
     `;
 
@@ -1944,13 +1927,7 @@ function renderOpsSection() {
     const hubDwellVals = locOrders.filter(r => r.dwell !== null && r.dwell > 0).map(r => r.dwell);
     const hubAvgDwell = hubDwellVals.length > 0 ? Math.round(hubDwellVals.reduce((a,b)=>a+b,0) / hubDwellVals.length) : 0;
     const hubMaxDwell = hubDwellVals.length > 0 ? Math.max(...hubDwellVals) : 0;
-
-    // Days to Deliver medio hub (KPI ufficiale)
-    const hubDTDVals = locOrders.filter(r => r.daysToDeliver !== null && r.daysToDeliver > 0).map(r => r.daysToDeliver);
-    const hubAvgDTD = hubDTDVals.length > 0 ? Math.round(hubDTDVals.reduce((a,b)=>a+b,0) / hubDTDVals.length) : 0;
-
     document.getElementById('opsKpiGrid').innerHTML += `
-        <div class="ops-kpi ${hubAvgDTD > 30 ? 'ops-kpi-alert' : ''}"><span class="ops-kpi-val" style="color:${hubAvgDTD > 30 ? '#ef4444' : hubAvgDTD > 14 ? '#f97316' : '#06b6d4'};">${hubAvgDTD}</span><span class="ops-kpi-label">Days to Deliver</span></div>
         <div class="ops-kpi ${hubAvgDwell > 6 ? 'ops-kpi-alert' : ''}"><span class="ops-kpi-val" style="color:${hubAvgDwell > 6 ? '#ef4444' : hubAvgDwell > 3 ? '#f97316' : '#06b6d4'};">${hubAvgDwell}</span><span class="ops-kpi-label">Dwell medio (gg)</span></div>
         <div class="ops-kpi"><span class="ops-kpi-val" style="color:${hubMaxDwell > 10 ? '#ef4444' : '#f97316'};">${hubMaxDwell}</span><span class="ops-kpi-label">Dwell max (gg)</span></div>
     `;
