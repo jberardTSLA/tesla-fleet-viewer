@@ -1146,19 +1146,9 @@ function applyFilters() {
             if (enterpriseFilter === 'B2B' && row.isEnterprise !== true) return false;
             if (enterpriseFilter === 'B2C' && row.isEnterprise === true) return false;
         }
-        // Date filter: check both arrival AND delivery date
-        const rowDate = row.date;
-        const rowDelivery = row.deliveryDate;
-        if (dateFrom) {
-            const matchArrival = rowDate && rowDate >= dateFrom;
-            const matchDelivery = rowDelivery && rowDelivery >= dateFrom;
-            if (!matchArrival && !matchDelivery) return false;
-        }
-        if (dateTo) {
-            const matchArrival = rowDate && rowDate <= dateTo;
-            const matchDelivery = rowDelivery && rowDelivery <= dateTo;
-            if (!matchArrival && !matchDelivery) return false;
-        }
+        // Date filter: based on ScheduledDeliveryDate
+        if (dateFrom && (!row.deliveryDate || row.deliveryDate < dateFrom)) return false;
+        if (dateTo && (!row.deliveryDate || row.deliveryDate > dateTo)) return false;
         return true;
     });
 
