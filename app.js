@@ -1134,6 +1134,16 @@ function _calcDwell(arrivalDate, deliveryDate, matchDate, scArrivalDate, fleetRe
     return Math.round((today - startDate) / 86400000);
 }
 
+// ─── Date key helper (local timezone, no UTC shift) ─────────
+function _dateKey(d) {
+    if (!d) return '';
+    const dt = d instanceof Date ? d : new Date(d);
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, '0');
+    const day = String(dt.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+}
+
 // ─── Filters ────────────────────────────────────────────────
 function applyFilters() {
     const locFilter = document.getElementById('filterLocation').value;
@@ -1367,14 +1377,14 @@ function renderTimelineChart() {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayKey = today.toISOString().split('T')[0];
+    const todayKey = _dateKey(today);
 
     // Build date range: -7 to +30 days
     const sortedKeys = [];
     for (let i = -7; i < 30; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() + i);
-        sortedKeys.push(d.toISOString().split('T')[0]);
+        sortedKeys.push(_dateKey(d));
     }
 
     // Get unique locations
@@ -1389,7 +1399,7 @@ function renderTimelineChart() {
 
     filteredData.forEach(row => {
         if (row.date && row.location) {
-            const key = row.date.toISOString().split('T')[0];
+            const key = _dateKey(row.date);
             if (locDayMap[row.location] && locDayMap[row.location][key] !== undefined) {
                 locDayMap[row.location][key]++;
             }
@@ -3232,7 +3242,7 @@ function renderEOQ() {
     else if (channelFilter === 'B2C') eoqData = filteredData.filter(r => r.isEnterprise === false);
 
     const locations = [...new Set(eoqData.map(r => r.location))].filter(l => l && l !== 'N/A').sort();
-    const dateKeys = dates.map(d => d.toISOString().split('T')[0]);
+    const dateKeys = dates.map(d => _dateKey(d));
     const dateLabels = dates.map(d => {
         const day = d.getDay();
         const label = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
@@ -3252,7 +3262,7 @@ function renderEOQ() {
 
     eoqData.forEach(r => {
         if (!r.date || !r.location || !arrConf[r.location]) return;
-        const k = r.date.toISOString().split('T')[0];
+        const k = _dateKey(r.date);
         if (arrConf[r.location][k] === undefined) return;
         if (r.isConfidentETA === true) {
             arrConf[r.location][k]++;
@@ -3306,7 +3316,7 @@ function renderEOQ() {
 
     eoqData.forEach(r => {
         if (!r.deliveryDate || !r.location || !schMatrix[r.location]) return;
-        const k = r.deliveryDate.toISOString().split('T')[0];
+        const k = _dateKey(r.deliveryDate);
         if (schMatrix[r.location][k] !== undefined) {
             schMatrix[r.location][k]++;
             schTotals[r.location]++;
