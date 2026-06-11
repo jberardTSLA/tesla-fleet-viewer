@@ -1144,7 +1144,7 @@ function applyFilters() {
         if (specialistFilter !== 'all' && (row.deliverySpecialist || '') !== specialistFilter) return false;
         if (enterpriseFilter !== 'all') {
             if (enterpriseFilter === 'B2B' && row.isEnterprise !== true) return false;
-            if (enterpriseFilter === 'B2C' && row.isEnterprise === true) return false;
+            if (enterpriseFilter === 'B2C' && row.isEnterprise !== false) return false;
         }
         // Date filter: based on ScheduledDeliveryDate
         if (dateFrom && (!row.deliveryDate || row.deliveryDate < dateFrom)) return false;
