@@ -3297,12 +3297,6 @@ function renderEOQ() {
         return `<td style="text-align:center;font-size:0.75rem;">${cell}</td>`;
     }).join('') +
     '<td style="font-weight:700;color:#eab308;">' + Object.values(arrTotals).reduce((a,b)=>a+b,0) + '</td></tr>';
-            }).join('') +
-            '<td style="font-weight:700;color:#06b6d4;">' + arrTotals[loc] + '</td></tr>';
-    }).filter(r=>r).join('') +
-    '<tr class="pivot-total"><td style="position:sticky;left:0;z-index:1;background:#0f1f3d;"><strong>TOTALE</strong></td>' +
-    dateKeys.map(k => `<td style="text-align:center;font-size:0.75rem;font-weight:700;color:#06b6d4;">${dayArrTotals[k]||''}</td>`).join('') +
-    '<td style="font-weight:700;color:#eab308;">' + Object.values(arrTotals).reduce((a,b)=>a+b,0) + '</td></tr>';
 
     // ── Pivot 2: Consegne schedulate (ScheduledDeliveryDate) ──
     const schMatrix = {};
