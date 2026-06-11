@@ -1094,9 +1094,9 @@ function isDeliveryReady(r) {
     if (!payOk) return false;
     const fs = getFinanceState(r);
     if (fs !== 'cash' && fs !== 'confirmed') return false;
-    // Registration check: must be Completed or Submitted
+    // Registration must be completed or submitted. Empty/unknown/not_started = NOT ready
     const rs = getRegState(r);
-    if (rs !== 'unknown' && rs !== 'completed' && rs !== 'submitted') return false;
+    if (rs !== 'completed' && rs !== 'submitted') return false;
     return true;
 }
 
@@ -1114,8 +1114,8 @@ function _calcDwell(arrivalDate, deliveryDate, matchDate, scArrivalDate, fleetRe
     const startDate = new Date(Math.max(...candidates.map(d => new Date(d).getTime())));
     startDate.setHours(0,0,0,0);
 
-    // If actually delivered, use actualDeliveryDate
-    const endDate = actualDeliveryDate || deliveryDate;
+    // Only use ACTUAL delivery date, not scheduled. For undelivered: use today.
+    const endDate = actualDeliveryDate;
     if (endDate) {
         const del = new Date(endDate); del.setHours(0,0,0,0);
         if (del >= startDate) return Math.round((del - startDate) / 86400000);
@@ -1147,8 +1147,9 @@ function applyFilters() {
             if (enterpriseFilter === 'B2C' && row.isEnterprise !== false) return false;
         }
         // Date filter: based on ScheduledDeliveryDate
-        if (dateFrom && (!row.deliveryDate || row.deliveryDate < dateFrom)) return false;
-        if (dateTo && (!row.deliveryDate || row.deliveryDate > dateTo)) return false;
+        // Orders WITHOUT deliveryDate always pass (they need scheduling)
+        if (dateFrom && row.deliveryDate && row.deliveryDate < dateFrom) return false;
+        if (dateTo && row.deliveryDate && row.deliveryDate > dateTo) return false;
         return true;
     });
 
@@ -2191,7 +2192,7 @@ function renderReadySection() {
         paymentSection.style.display = 'none';
     }
 
-    if (readyOrders.length === 0) {
+    if (readyOrders.length === 0 && needPaymentOrders.length === 0 && needFinanceOrders.length === 0) {
         section.style.display = 'none';
         return;
     }
