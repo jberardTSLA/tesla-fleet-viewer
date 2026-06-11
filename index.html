@@ -418,6 +418,10 @@
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1C5.24 1 3 3.24 3 6c0 4.5 5 9 5 9s5-4.5 5-9c0-2.76-2.24-5-5-5z" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="8" cy="6" r="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
                     Mappa
                 </button>
+                <button class="btn-upload-new" onclick="openEOQ()" style="background:rgba(234,179,8,0.1);color:#eab308;border-color:rgba(234,179,8,0.2);">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="7" x2="14" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="6" y1="3" x2="6" y2="14" stroke="currentColor" stroke-width="0.8" opacity="0.4"/><line x1="10" y1="3" x2="10" y2="14" stroke="currentColor" stroke-width="0.8" opacity="0.4"/></svg>
+                    End of Quarter
+                </button>
             </div>
 
             <!-- Charts Row -->
@@ -860,6 +864,45 @@
             <div class="map-legend-item"><span class="ml-dot" style="background:#3b82f6;"></span> In arrivo</div>
             <div class="map-legend-item"><span class="ml-dot" style="background:#eab308;"></span> Transit point</div>
             <div class="map-legend-item"><span class="ml-dot" style="background:#ef4444;"></span> Containment Hold</div>
+        </div>
+    </div>
+
+    <!-- END OF QUARTER OVERLAY -->
+    <div class="map-overlay" id="eoqOverlay" style="display:none;">
+        <div class="map-header-bar">
+            <div class="map-header-left">
+                <button class="map-close-btn" onclick="closeEOQ()">&times;</button>
+                <span class="map-title-text" style="background:linear-gradient(135deg,#eab308,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">END OF QUARTER</span>
+                <span class="map-subtitle-text" id="eoqDateRange"></span>
+            </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:20px;">
+            <!-- Pivot Arrivi -->
+            <div class="table-card" style="border-color:rgba(6,182,212,0.25);">
+                <div class="table-header">
+                    <h3 style="color:#06b6d4;">Arrivi per Location — Giorno per Giorno</h3>
+                    <button class="btn-export" onclick="exportEOQTable('eoqArrivalsTable','eoq_arrivi.csv')">Esporta CSV</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="eoqArrivalsTable" class="data-table">
+                        <thead id="eoqArrivalsHead"></thead>
+                        <tbody id="eoqArrivalsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Pivot Scheduling -->
+            <div class="table-card" style="border-color:rgba(168,85,247,0.25);margin-top:16px;">
+                <div class="table-header">
+                    <h3 style="color:#a855f7;">Consegne Schedulate per Location — Giorno per Giorno</h3>
+                    <button class="btn-export" onclick="exportEOQTable('eoqScheduleTable','eoq_consegne.csv')">Esporta CSV</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="eoqScheduleTable" class="data-table">
+                        <thead id="eoqScheduleHead"></thead>
+                        <tbody id="eoqScheduleBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
