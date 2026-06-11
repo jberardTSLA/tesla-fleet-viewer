@@ -3225,7 +3225,13 @@ function renderEOQ() {
         d.setDate(d.getDate() + 1);
     }
 
-    const locations = [...new Set(rawData.map(r => r.location))].filter(l => l && l !== 'N/A').sort();
+    // B2B/B2C filter
+    const channelFilter = document.getElementById('eoqChannelFilter').value;
+    let eoqData = rawData;
+    if (channelFilter === 'B2B') eoqData = rawData.filter(r => r.isEnterprise === true);
+    else if (channelFilter === 'B2C') eoqData = rawData.filter(r => r.isEnterprise === false);
+
+    const locations = [...new Set(eoqData.map(r => r.location))].filter(l => l && l !== 'N/A').sort();
     const dateKeys = dates.map(d => d.toISOString().split('T')[0]);
     const dateLabels = dates.map(d => {
         const day = d.getDay();
@@ -3239,7 +3245,7 @@ function renderEOQ() {
     locations.forEach(loc => { arrMatrix[loc] = {}; arrTotals[loc] = 0; dateKeys.forEach(k => arrMatrix[loc][k] = 0); });
     const dayArrTotals = {}; dateKeys.forEach(k => dayArrTotals[k] = 0);
 
-    rawData.forEach(r => {
+    eoqData.forEach(r => {
         if (!r.date || !r.location || !arrMatrix[r.location]) return;
         const k = r.date.toISOString().split('T')[0];
         if (arrMatrix[r.location][k] !== undefined) {
@@ -3276,7 +3282,7 @@ function renderEOQ() {
     locations.forEach(loc => { schMatrix[loc] = {}; schTotals[loc] = 0; dateKeys.forEach(k => schMatrix[loc][k] = 0); });
     const daySchTotals = {}; dateKeys.forEach(k => daySchTotals[k] = 0);
 
-    rawData.forEach(r => {
+    eoqData.forEach(r => {
         if (!r.deliveryDate || !r.location || !schMatrix[r.location]) return;
         const k = r.deliveryDate.toISOString().split('T')[0];
         if (schMatrix[r.location][k] !== undefined) {

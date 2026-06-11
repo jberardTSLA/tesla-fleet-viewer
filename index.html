@@ -875,6 +875,13 @@
                 <span class="map-title-text" style="background:linear-gradient(135deg,#eab308,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">END OF QUARTER</span>
                 <span class="map-subtitle-text" id="eoqDateRange"></span>
             </div>
+            <div class="map-controls">
+                <select id="eoqChannelFilter" onchange="renderEOQ()" style="padding:6px 12px;background:rgba(10,22,40,0.8);color:#e8edf5;border:1px solid rgba(59,130,246,0.2);border-radius:8px;font-size:0.8rem;cursor:pointer;">
+                    <option value="all">Tutti</option>
+                    <option value="B2B">B2B (Enterprise)</option>
+                    <option value="B2C">B2C (Privato)</option>
+                </select>
+            </div>
         </div>
         <div style="flex:1;overflow-y:auto;padding:20px;">
             <!-- Pivot Arrivi -->
