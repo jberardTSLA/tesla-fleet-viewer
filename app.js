@@ -1101,29 +1101,37 @@ function isDeliveryReady(r) {
 }
 
 // ─── Dwell calculation ──────────────────────────────────────
-// OFFICIAL: Dwell = ActualDeliveryDate - MAX(MatchDate, ETA2SC)
-// If not delivered: Dwell = TODAY - MAX(MatchDate, ETA2SC)
+// Dwell = giorni a terra, parte SOLO se matchata E a terra
+// Start = MAX(MatchDate, data arrivo) — serve ENTRAMBI
+// End = ActualDeliveryDate (se consegnato) o OGGI (se non consegnato)
+// Senza match → null. Auto non a terra → 0.
 function _calcDwell(arrivalDate, deliveryDate, matchDate, scArrivalDate, fleetReleaseDate, actualDeliveryDate) {
+    // Senza match non c'è dwell
+    if (!matchDate) return null;
+
     const today = new Date(); today.setHours(0,0,0,0);
+    const match = new Date(matchDate); match.setHours(0,0,0,0);
 
-    // Reference start date: MAX(matchDate, arrivalDate/ETA2SC)
-    // arrivalDate here is ETA2SC when available
-    const candidates = [matchDate, arrivalDate].filter(d => d);
-    if (candidates.length === 0) return null;
+    // Data arrivo fisico a terra
+    const arrival = arrivalDate ? new Date(arrivalDate) : null;
+    if (arrival) arrival.setHours(0,0,0,0);
 
-    const startDate = new Date(Math.max(...candidates.map(d => new Date(d).getTime())));
-    startDate.setHours(0,0,0,0);
+    // Auto non ancora a terra → dwell non parte
+    if (!arrival || arrival > today) return 0;
 
-    // Only use ACTUAL delivery date, not scheduled. For undelivered: use today.
-    const endDate = actualDeliveryDate;
-    if (endDate) {
-        const del = new Date(endDate); del.setHours(0,0,0,0);
+    // Start = il più tardi tra match e arrivo (entrambi devono essere passati)
+    const startDate = new Date(Math.max(match.getTime(), arrival.getTime()));
+
+    // Se lo start è nel futuro, dwell non è ancora partito
+    if (startDate > today) return 0;
+
+    // End = data consegna effettiva, o oggi se non consegnato
+    if (actualDeliveryDate) {
+        const del = new Date(actualDeliveryDate); del.setHours(0,0,0,0);
         if (del >= startDate) return Math.round((del - startDate) / 86400000);
     }
 
-    // If not delivered, dwell = today - start (ongoing)
-    if (startDate <= today) return Math.round((today - startDate) / 86400000);
-    return 0;
+    return Math.round((today - startDate) / 86400000);
 }
 
 // ─── Filters ────────────────────────────────────────────────
