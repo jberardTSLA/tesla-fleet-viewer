@@ -167,14 +167,6 @@ function bootStart() {
 
 function handleFile2Merge(jsonData) {
     const file2Headers = Object.keys(jsonData[0]);
-    const rnCol = file2Headers.find(h => h.toLowerCase().replace(/[_\s]/g,'') === 'referencenumber') || null;
-    if (!rnCol) return;
-
-    const lookup = {};
-    jsonData.forEach(row => {
-        const rn = String(row[rnCol] || '').trim();
-        if (rn) lookup[rn] = row;
-    });
 
     const findCol = (names) => {
         for (const n of names) {
@@ -183,6 +175,37 @@ function handleFile2Merge(jsonData) {
         }
         return null;
     };
+
+    // Find join key: ReferenceNumber, or extract RN from WDOLink, or fallback to VIN
+    const rnCol = findCol(['ReferenceNumber', 'Reference Number']);
+    const wdoCol = findCol(['WDOLink', 'WDOCheckoutLink', 'WDO Link', 'WDO Checkout Link']);
+    const vinCol = findCol(['Vin', 'VIN']);
+
+    // Build lookup by RN (preferred) or VIN (fallback)
+    const lookupByRN = {};
+    const lookupByVIN = {};
+    jsonData.forEach(row => {
+        // Try RN directly
+        if (rnCol) {
+            const rn = String(row[rnCol] || '').trim();
+            if (rn) lookupByRN[rn] = row;
+        }
+        // Extract RN from WDOLink (e.g. "RN127985544" or URL with rn= param)
+        if (wdoCol && !rnCol) {
+            const wdo = String(row[wdoCol] || '').trim();
+            const rnMatch = wdo.match(/RN\d+/i);
+            if (rnMatch) lookupByRN[rnMatch[0].toUpperCase()] = row;
+        }
+        // VIN lookup
+        if (vinCol) {
+            const vin = String(row[vinCol] || '').trim();
+            if (vin) lookupByVIN[vin] = row;
+        }
+    });
+
+    const hasRNLookup = Object.keys(lookupByRN).length > 0;
+    const hasVINLookup = Object.keys(lookupByVIN).length > 0;
+    if (!hasRNLookup && !hasVINLookup) return;
 
     const col_eta2sc = findCol(['ETA2SC']);
     const col_enterprise = findCol(['IsEnterpriseOrder']);
@@ -202,9 +225,15 @@ function handleFile2Merge(jsonData) {
     const col_specialNeedsTag = findCol(['SpecialNeedsTagName', 'Special_Needs_Tag', 'SpecialNeeds', 'Special Needs Tag', 'Tags']);
 
     rawData.forEach(row => {
-        const rn = row.reservationNumber;
-        if (!rn || !lookup[rn]) return;
-        const f2 = lookup[rn];
+        // Find matching File 2 row: try RN first, then VIN
+        let f2 = null;
+        if (hasRNLookup && row.reservationNumber) {
+            f2 = lookupByRN[row.reservationNumber] || lookupByRN[row.reservationNumber.toUpperCase()];
+        }
+        if (!f2 && hasVINLookup && row.orderId) {
+            f2 = lookupByVIN[row.orderId] || lookupByVIN[row.orderId.toUpperCase()];
+        }
+        if (!f2) return;
 
         if (col_eta2sc) {
             const eta = parseAnyDate(f2[col_eta2sc]);
