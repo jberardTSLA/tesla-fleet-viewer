@@ -3239,36 +3239,64 @@ function renderEOQ() {
         return { label, isWeekend: day === 0 || day === 6 };
     });
 
-    // ── Pivot 1: Arrivi (VehicleETAToService / date) ──
-    const arrMatrix = {};
+    // ── Pivot 1: Arrivi (ETA2SC) — split Confident / Not Confident ──
+    const arrConf = {};   // confident
+    const arrNotConf = {}; // not confident
     const arrTotals = {};
-    locations.forEach(loc => { arrMatrix[loc] = {}; arrTotals[loc] = 0; dateKeys.forEach(k => arrMatrix[loc][k] = 0); });
-    const dayArrTotals = {}; dateKeys.forEach(k => dayArrTotals[k] = 0);
+    locations.forEach(loc => {
+        arrConf[loc] = {}; arrNotConf[loc] = {}; arrTotals[loc] = 0;
+        dateKeys.forEach(k => { arrConf[loc][k] = 0; arrNotConf[loc][k] = 0; });
+    });
+    const dayConfTotals = {}; const dayNotConfTotals = {};
+    dateKeys.forEach(k => { dayConfTotals[k] = 0; dayNotConfTotals[k] = 0; });
 
     eoqData.forEach(r => {
-        if (!r.date || !r.location || !arrMatrix[r.location]) return;
+        if (!r.date || !r.location || !arrConf[r.location]) return;
         const k = r.date.toISOString().split('T')[0];
-        if (arrMatrix[r.location][k] !== undefined) {
-            arrMatrix[r.location][k]++;
-            arrTotals[r.location]++;
-            dayArrTotals[k]++;
+        if (arrConf[r.location][k] === undefined) return;
+        if (r.isConfidentETA === true) {
+            arrConf[r.location][k]++;
+            dayConfTotals[k]++;
+        } else {
+            arrNotConf[r.location][k]++;
+            dayNotConfTotals[k]++;
         }
+        arrTotals[r.location]++;
     });
 
     // Render arrivals pivot
     const aHead = document.getElementById('eoqArrivalsHead');
     const aBody = document.getElementById('eoqArrivalsBody');
     aHead.innerHTML = '<tr><th style="position:sticky;left:0;z-index:2;background:#0f1f3d;">Location</th>' +
-        dateLabels.map((d,i) => `<th style="min-width:36px;font-size:0.55rem;${d.isWeekend?'color:#5a7a9e;opacity:0.5;':''}">${d.label}</th>`).join('') +
+        dateLabels.map((d,i) => `<th style="min-width:44px;font-size:0.55rem;${d.isWeekend?'color:#5a7a9e;opacity:0.5;':''}">${d.label}</th>`).join('') +
         '<th>TOT</th></tr>';
 
     aBody.innerHTML = locations.map(loc => {
         if (arrTotals[loc] === 0) return '';
         return '<tr><td style="position:sticky;left:0;z-index:1;background:#0a1628;white-space:nowrap;font-weight:600;font-size:0.75rem;">' + escapeHtml(loc) + '</td>' +
             dateKeys.map((k,i) => {
-                const v = arrMatrix[loc][k];
-                const bg = v > 10 ? 'rgba(6,182,212,0.3)' : v > 5 ? 'rgba(6,182,212,0.15)' : v > 0 ? 'rgba(6,182,212,0.06)' : '';
-                return `<td style="text-align:center;font-size:0.75rem;${bg?'background:'+bg+';':''}${dateLabels[i].isWeekend?'opacity:0.4;':''}">${v||''}</td>`;
+                const c = arrConf[loc][k];
+                const nc = arrNotConf[loc][k];
+                const total = c + nc;
+                const bg = total > 10 ? 'rgba(6,182,212,0.3)' : total > 5 ? 'rgba(6,182,212,0.15)' : total > 0 ? 'rgba(6,182,212,0.06)' : '';
+                let cell = '';
+                if (c > 0) cell += `<span style="color:#22c55e;">${c}</span>`;
+                if (c > 0 && nc > 0) cell += '<span style="color:#5a7a9e;font-size:0.6rem;">+</span>';
+                if (nc > 0) cell += `<span style="color:#f97316;font-size:0.65rem;">${nc}?</span>`;
+                return `<td style="text-align:center;font-size:0.75rem;${bg?'background:'+bg+';':''}${dateLabels[i].isWeekend?'opacity:0.4;':''}">${cell}</td>`;
+            }).join('') +
+            '<td style="font-weight:700;color:#06b6d4;">' + arrTotals[loc] + '</td></tr>';
+    }).filter(r=>r).join('') +
+    '<tr class="pivot-total"><td style="position:sticky;left:0;z-index:1;background:#0f1f3d;"><strong>TOTALE</strong></td>' +
+    dateKeys.map(k => {
+        const c = dayConfTotals[k]; const nc = dayNotConfTotals[k];
+        let cell = '';
+        if (c > 0) cell += `<span style="color:#22c55e;font-weight:700;">${c}</span>`;
+        if (c > 0 && nc > 0) cell += '<span style="color:#5a7a9e;">+</span>';
+        if (nc > 0) cell += `<span style="color:#f97316;font-weight:700;">${nc}?</span>`;
+        return `<td style="text-align:center;font-size:0.75rem;">${cell}</td>`;
+    }).join('') +
+    '<td style="font-weight:700;color:#eab308;">' + Object.values(arrTotals).reduce((a,b)=>a+b,0) + '</td></tr>';
             }).join('') +
             '<td style="font-weight:700;color:#06b6d4;">' + arrTotals[loc] + '</td></tr>';
     }).filter(r=>r).join('') +
