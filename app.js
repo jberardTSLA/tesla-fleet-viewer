@@ -1143,11 +1143,22 @@ function applyFilters() {
         if (modelFilter !== 'all' && row.model !== modelFilter) return false;
         if (specialistFilter !== 'all' && (row.deliverySpecialist || '') !== specialistFilter) return false;
         if (enterpriseFilter !== 'all') {
-            if (enterpriseFilter === 'B2B' && !row.isEnterprise) return false;
-            if (enterpriseFilter === 'B2C' && row.isEnterprise) return false;
+            if (enterpriseFilter === 'B2B' && row.isEnterprise !== true) return false;
+            if (enterpriseFilter === 'B2C' && row.isEnterprise === true) return false;
         }
-        if (dateFrom && row.date < dateFrom) return false;
-        if (dateTo && row.date > dateTo) return false;
+        // Date filter: check both arrival AND delivery date
+        const rowDate = row.date;
+        const rowDelivery = row.deliveryDate;
+        if (dateFrom) {
+            const matchArrival = rowDate && rowDate >= dateFrom;
+            const matchDelivery = rowDelivery && rowDelivery >= dateFrom;
+            if (!matchArrival && !matchDelivery) return false;
+        }
+        if (dateTo) {
+            const matchArrival = rowDate && rowDate <= dateTo;
+            const matchDelivery = rowDelivery && rowDelivery <= dateTo;
+            if (!matchArrival && !matchDelivery) return false;
+        }
         return true;
     });
 
