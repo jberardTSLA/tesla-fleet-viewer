@@ -3225,11 +3225,11 @@ function renderEOQ() {
         d.setDate(d.getDate() + 1);
     }
 
-    // B2B/B2C filter
+    // B2B/B2C filter applied on filteredData (respects dashboard filters)
     const channelFilter = document.getElementById('eoqChannelFilter').value;
-    let eoqData = rawData;
-    if (channelFilter === 'B2B') eoqData = rawData.filter(r => r.isEnterprise === true);
-    else if (channelFilter === 'B2C') eoqData = rawData.filter(r => r.isEnterprise === false);
+    let eoqData = filteredData;
+    if (channelFilter === 'B2B') eoqData = filteredData.filter(r => r.isEnterprise === true);
+    else if (channelFilter === 'B2C') eoqData = filteredData.filter(r => r.isEnterprise === false);
 
     const locations = [...new Set(eoqData.map(r => r.location))].filter(l => l && l !== 'N/A').sort();
     const dateKeys = dates.map(d => d.toISOString().split('T')[0]);
