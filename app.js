@@ -41,6 +41,7 @@ const CHART_COLORS = [
 // ─── BOOT SCREEN (PS2 Style) ────────────────────────────────
 let bootFile1Loaded = false;
 let bootFile2Loaded = false;
+let bootFile3Loaded = false;
 
 // Generate floating particles
 (function() {
@@ -64,8 +65,10 @@ let bootFile2Loaded = false;
 document.addEventListener('DOMContentLoaded', () => {
     const bf1 = document.getElementById('bootFile1');
     const bf2 = document.getElementById('bootFile2');
+    const bf3 = document.getElementById('bootFile3');
     if (bf1) bf1.addEventListener('change', e => { if (e.target.files.length) handleBootFile(e.target.files[0], 1); });
     if (bf2) bf2.addEventListener('change', e => { if (e.target.files.length) handleBootFile(e.target.files[0], 2); });
+    if (bf3) bf3.addEventListener('change', e => { if (e.target.files.length) handleBootFile(e.target.files[0], 3); });
 });
 
 function handleBootFile(file, slot) {
@@ -100,7 +103,7 @@ function handleBootFile(file, slot) {
                 document.getElementById('bootDesc1').textContent = jsonData.length + ' ordini caricati';
                 document.getElementById('bootAction1').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 10l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>CARICATO</span>';
                 if (window.gsapFileLoaded) gsapFileLoaded(slotEl);
-            } else {
+            } else if (slot === 2) {
                 // Secondary file — store for later merge
                 window._bootFile2Data = jsonData;
                 bootFile2Loaded = true;
@@ -109,10 +112,15 @@ function handleBootFile(file, slot) {
                 document.getElementById('bootDesc2').textContent = jsonData.length + ' righe caricate';
                 document.getElementById('bootAction2').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 10l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>CARICATO</span>';
                 if (window.gsapFileLoaded) gsapFileLoaded(slotEl);
-                // Unlock Bravo
-                OPTIMUS_DATA[1].locked = false;
-                const lockBadge = document.getElementById('charLock1');
-                if (lockBadge) lockBadge.style.display = 'none';
+            } else if (slot === 3) {
+                // File 3: Delivery Tracker — merge by VIN
+                window._bootFile3Data = jsonData;
+                bootFile3Loaded = true;
+                const slotEl = document.getElementById('bootSlot3');
+                slotEl.classList.add('loaded');
+                document.getElementById('bootDesc3').textContent = jsonData.length + ' righe caricate';
+                document.getElementById('bootAction3').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 10l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>CARICATO</span>';
+                if (window.gsapFileLoaded) gsapFileLoaded(slotEl);
             }
 
             updateBootButton();
@@ -143,6 +151,11 @@ function bootStart() {
     // Process File 2 if loaded
     if (bootFile2Loaded && window._bootFile2Data) {
         handleFile2Merge(window._bootFile2Data);
+    }
+
+    // Process File 3 (Delivery Tracker) if loaded — merge by VIN
+    if (bootFile3Loaded && window._bootFile3Data) {
+        handleFile3Merge(window._bootFile3Data);
     }
 
     // Populate mode selectors with actual data
@@ -268,6 +281,139 @@ function handleFile2Merge(jsonData) {
         if (col_specialNeedsTag) { row.specialNeedsTag = String(f2[col_specialNeedsTag]||'').trim(); }
     });
 
+    applyFilters();
+}
+
+// ─── File 3: Delivery Tracker Merge (by VIN) ────────────────
+function handleFile3Merge(jsonData) {
+    const f3Headers = Object.keys(jsonData[0]);
+    const findCol = (names) => {
+        for (const n of names) {
+            const found = f3Headers.find(h => h.toLowerCase().replace(/[_\s]/g,'') === n.toLowerCase().replace(/[_\s]/g,''));
+            if (found) return found;
+        }
+        return null;
+    };
+
+    // Build VIN lookup
+    const vinCol = findCol(['Vin', 'VIN']);
+    if (!vinCol) { console.warn('[File 3] Colonna VIN non trovata'); return; }
+    const lookup = {};
+    jsonData.forEach(row => {
+        const vin = String(row[vinCol] || '').trim();
+        if (vin) lookup[vin] = row;
+    });
+
+    // Also try to extract RN from WDOLink for cross-reference
+    const wdoCol = findCol(['WDOLink', 'WDOCheckoutLink', 'WDO Link']);
+    const rnLookup = {};
+    if (wdoCol) {
+        jsonData.forEach(row => {
+            const wdo = String(row[wdoCol] || '').trim();
+            const rnMatch = wdo.match(/RN\d+/i);
+            const vin = String(row[vinCol] || '').trim();
+            if (rnMatch && vin) rnLookup[rnMatch[0].toUpperCase()] = row;
+        });
+    }
+
+    // Find columns
+    const col_containment = findCol(['IsContainmenthold', 'IsContainmentHold']);
+    const col_lastLocation = findCol(['LastKnownVehicleLocation', 'Last Known Vehicle Location']);
+    const col_eta2sc = findCol(['ETA2SC']);
+    const col_matchDate = findCol(['MatchDate', 'Match Date']);
+    const col_orderType = findCol(['OrderType', 'Order Type']);
+    const col_financePartner = findCol(['FinancePartner', 'Finance Partner']);
+    const col_regStatus = findCol(['RegistrationStatus', 'Registration Status']);
+    const col_specialNeeds = findCol(['SpecialNeedsTagName', 'Special Needs Tag']);
+    const col_vehicleStatus = findCol(['VehicleStatus', 'Vehicle Status']);
+    const col_titleStatus = findCol(['TitleStatus', 'Title Status']);
+    const col_orderStatus = findCol(['OrderStatus', 'Order Status']);
+    const col_sdd = findCol(['ScheduledDeliveryDate', 'Scheduled Delivery Date']);
+    const col_specialist = findCol(['DeliverySpecialist', 'Delivery Specialist']);
+    const col_location = findCol(['ServiceCenterforPickUp', 'ServiceCenterForPickup', 'Service Center']);
+
+    let matched = 0;
+    rawData.forEach(row => {
+        // Match by VIN (primary) or RN (secondary)
+        let f3 = lookup[row.orderId] || lookup[(row.orderId||'').toUpperCase()];
+        if (!f3 && row.reservationNumber) {
+            f3 = rnLookup[row.reservationNumber] || rnLookup[(row.reservationNumber||'').toUpperCase()];
+        }
+        if (!f3) return;
+        matched++;
+
+        // Merge fields (only overwrite if value exists in File 3)
+        if (col_containment) {
+            const v = String(f3[col_containment]||'').trim().toLowerCase();
+            row.isContainmentHold = (v==='true'||v==='1'||v==='yes');
+        }
+        if (col_lastLocation) {
+            const v = String(f3[col_lastLocation]||'').trim();
+            if (v) row.lastKnownLocation = v;
+        }
+        if (col_eta2sc) {
+            const eta = parseAnyDate(f3[col_eta2sc]);
+            if (eta) {
+                row.date = eta;
+                row.dateStr = eta.toLocaleDateString('it-IT');
+            }
+        }
+        if (col_matchDate) {
+            const md = parseAnyDate(f3[col_matchDate]);
+            if (md) row.matchDate = md;
+        }
+        if (col_orderType) {
+            const v = String(f3[col_orderType]||'').trim();
+            if (v) row.orderType = v;
+        }
+        if (col_financePartner) {
+            const v = String(f3[col_financePartner]||'').trim();
+            if (v) row.financePartner = v;
+        }
+        if (col_regStatus) {
+            const v = String(f3[col_regStatus]||'').trim();
+            if (v) row.registrationStatus = v;
+        }
+        if (col_specialNeeds) {
+            const v = String(f3[col_specialNeeds]||'').trim();
+            if (v) row.specialNeedsTag = v;
+        }
+        if (col_titleStatus) {
+            const v = String(f3[col_titleStatus]||'').trim();
+            if (v) {
+                row.titleStatus = v;
+                // New/Used detection from TitleStatus
+                const low = v.toLowerCase();
+                if (low.includes('used') || low.includes('usato') || low.includes('pre-owned') || low.includes('cpo')) {
+                    row.isUsed = true;
+                    if (!row.orderSalesType) row.orderSalesType = 'Used';
+                } else {
+                    row.isUsed = false;
+                    if (!row.orderSalesType) row.orderSalesType = 'New';
+                }
+            }
+        }
+        if (col_sdd) {
+            const sdd = parseAnyDate(f3[col_sdd]);
+            if (sdd) {
+                row.deliveryDate = sdd;
+                row.deliveryDateStr = sdd.toLocaleDateString('it-IT');
+            }
+        }
+        if (col_specialist) {
+            const v = String(f3[col_specialist]||'').trim();
+            if (v) row.deliverySpecialist = v;
+        }
+        if (col_location) {
+            const v = String(f3[col_location]||'').trim();
+            if (v) row.location = v;
+        }
+
+        // Recalculate dwell with new data
+        row.dwell = _calcDwell(row.date, row.deliveryDate, row.matchDate, null, null, row.actualDeliveryDate);
+    });
+
+    console.log('[File 3] Merged ' + matched + ' ordini su ' + jsonData.length + ' righe (by VIN)');
     applyFilters();
 }
 
@@ -2796,14 +2942,21 @@ function showUpload() {
     columnMap = {};
     bootFile1Loaded = false;
     bootFile2Loaded = false;
+    bootFile3Loaded = false;
 
     // Reset boot UI
     document.getElementById('bootSlot1').classList.remove('loaded');
     document.getElementById('bootSlot2').classList.remove('loaded');
+    const slot3 = document.getElementById('bootSlot3');
+    if (slot3) slot3.classList.remove('loaded');
     document.getElementById('bootDesc1').textContent = 'Export da chart "Tutti gli ordini con telaio"';
     document.getElementById('bootDesc2').textContent = 'B2B/B2C, ETA2SC, Containment Hold';
+    const desc3 = document.getElementById('bootDesc3');
+    if (desc3) desc3.textContent = 'CH, Registration, Finance, Location, Tags';
     document.getElementById('bootAction1').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v3h14v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>CARICA EXCEL</span>';
     document.getElementById('bootAction2').innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v3h14v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>OPZIONALE</span>';
+    const action3 = document.getElementById('bootAction3');
+    if (action3) action3.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v3h14v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>OPZIONALE</span>';
     document.getElementById('bootStartBtn').disabled = true;
     document.getElementById('bootStartBtn').querySelector('.boot-start-text').textContent = 'IN ATTESA DATI...';
     document.getElementById('bootInsertText').textContent = 'Inserisci i file dati per iniziare';

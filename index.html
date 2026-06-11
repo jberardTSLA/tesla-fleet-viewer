@@ -63,6 +63,20 @@
                         <span>OPZIONALE</span>
                     </div>
                 </div>
+
+                <!-- Slot 3: File completo (VIN-based) -->
+                <div class="boot-slot boot-slot-optional" id="bootSlot3" onclick="document.getElementById('bootFile3').click()">
+                    <input type="file" id="bootFile3" accept=".xlsx,.xls,.csv" hidden>
+                    <div class="boot-slot-number">3</div>
+                    <div class="boot-slot-info">
+                        <span class="boot-slot-label">DELIVERY TRACKER</span>
+                        <span class="boot-slot-desc" id="bootDesc3">CH, Registration, Finance, Location, Tags</span>
+                    </div>
+                    <div class="boot-slot-action" id="bootAction3">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v3h14v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span>OPZIONALE</span>
+                    </div>
+                </div>
             </div>
 
             <button class="boot-start-btn" id="bootStartBtn" disabled onclick="bootStart()">
