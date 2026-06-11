@@ -1339,130 +1339,6 @@ function renderPieChart(canvasId, dataObj, title) {
                             return ` ${context.label}: ${context.parsed.toLocaleString('it-IT')} (${pct}%)`;
 }
 
-/* ============================================================
-   END OF QUARTER — Pivot giornaliere arrivi + consegne
-   ============================================================ */
-
-function _getQuarterEnd() {
-    const today = new Date();
-    const month = today.getMonth();
-    const year = today.getFullYear();
-    const qEndMonth = Math.floor(month / 3) * 3 + 2; // 2=Mar, 5=Giu, 8=Set, 11=Dic
-    const lastDay = new Date(year, qEndMonth + 1, 0); // ultimo giorno del mese
-    return lastDay;
-}
-
-function openEOQ() {
-    document.getElementById('eoqOverlay').style.display = 'flex';
-    renderEOQ();
-}
-
-function closeEOQ() {
-    document.getElementById('eoqOverlay').style.display = 'none';
-}
-
-function renderEOQ() {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const qEnd = _getQuarterEnd(); qEnd.setHours(23,59,59);
-
-    document.getElementById('eoqDateRange').textContent =
-        today.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}) + ' — ' +
-        qEnd.toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
-
-    // Build date columns (today to end of quarter)
-    const dates = [];
-    const d = new Date(today);
-    while (d <= qEnd) {
-        dates.push(new Date(d));
-        d.setDate(d.getDate() + 1);
-    }
-
-    const locations = [...new Set(rawData.map(r => r.location))].filter(l => l && l !== 'N/A').sort();
-    const dateKeys = dates.map(d => d.toISOString().split('T')[0]);
-    const dateLabels = dates.map(d => {
-        const day = d.getDay();
-        const label = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
-        return { label, isWeekend: day === 0 || day === 6 };
-    });
-
-    // ── Pivot 1: Arrivi (VehicleETAToService / date) ──
-    const arrMatrix = {};
-    const arrTotals = {};
-    locations.forEach(loc => { arrMatrix[loc] = {}; arrTotals[loc] = 0; dateKeys.forEach(k => arrMatrix[loc][k] = 0); });
-    const dayArrTotals = {}; dateKeys.forEach(k => dayArrTotals[k] = 0);
-
-    rawData.forEach(r => {
-        if (!r.date || !r.location || !arrMatrix[r.location]) return;
-        const k = r.date.toISOString().split('T')[0];
-        if (arrMatrix[r.location][k] !== undefined) {
-            arrMatrix[r.location][k]++;
-            arrTotals[r.location]++;
-            dayArrTotals[k]++;
-        }
-    });
-
-    // Render arrivals pivot
-    const aHead = document.getElementById('eoqArrivalsHead');
-    const aBody = document.getElementById('eoqArrivalsBody');
-    aHead.innerHTML = '<tr><th style="position:sticky;left:0;z-index:2;background:#0f1f3d;">Location</th>' +
-        dateLabels.map((d,i) => `<th style="min-width:36px;font-size:0.55rem;${d.isWeekend?'color:#5a7a9e;opacity:0.5;':''}">${d.label}</th>`).join('') +
-        '<th>TOT</th></tr>';
-
-    aBody.innerHTML = locations.map(loc => {
-        if (arrTotals[loc] === 0) return '';
-        return '<tr><td style="position:sticky;left:0;z-index:1;background:#0a1628;white-space:nowrap;font-weight:600;font-size:0.75rem;">' + escapeHtml(loc) + '</td>' +
-            dateKeys.map((k,i) => {
-                const v = arrMatrix[loc][k];
-                const bg = v > 10 ? 'rgba(6,182,212,0.3)' : v > 5 ? 'rgba(6,182,212,0.15)' : v > 0 ? 'rgba(6,182,212,0.06)' : '';
-                return `<td style="text-align:center;font-size:0.75rem;${bg?'background:'+bg+';':''}${dateLabels[i].isWeekend?'opacity:0.4;':''}">${v||''}</td>`;
-            }).join('') +
-            '<td style="font-weight:700;color:#06b6d4;">' + arrTotals[loc] + '</td></tr>';
-    }).filter(r=>r).join('') +
-    '<tr class="pivot-total"><td style="position:sticky;left:0;z-index:1;background:#0f1f3d;"><strong>TOTALE</strong></td>' +
-    dateKeys.map(k => `<td style="text-align:center;font-size:0.75rem;font-weight:700;color:#06b6d4;">${dayArrTotals[k]||''}</td>`).join('') +
-    '<td style="font-weight:700;color:#eab308;">' + Object.values(arrTotals).reduce((a,b)=>a+b,0) + '</td></tr>';
-
-    // ── Pivot 2: Consegne schedulate (ScheduledDeliveryDate) ──
-    const schMatrix = {};
-    const schTotals = {};
-    locations.forEach(loc => { schMatrix[loc] = {}; schTotals[loc] = 0; dateKeys.forEach(k => schMatrix[loc][k] = 0); });
-    const daySchTotals = {}; dateKeys.forEach(k => daySchTotals[k] = 0);
-
-    rawData.forEach(r => {
-        if (!r.deliveryDate || !r.location || !schMatrix[r.location]) return;
-        const k = r.deliveryDate.toISOString().split('T')[0];
-        if (schMatrix[r.location][k] !== undefined) {
-            schMatrix[r.location][k]++;
-            schTotals[r.location]++;
-            daySchTotals[k]++;
-        }
-    });
-
-    const sHead = document.getElementById('eoqScheduleHead');
-    const sBody = document.getElementById('eoqScheduleBody');
-    sHead.innerHTML = '<tr><th style="position:sticky;left:0;z-index:2;background:#0f1f3d;">Location</th>' +
-        dateLabels.map((d,i) => `<th style="min-width:36px;font-size:0.55rem;${d.isWeekend?'color:#5a7a9e;opacity:0.5;':''}">${d.label}</th>`).join('') +
-        '<th>TOT</th></tr>';
-
-    sBody.innerHTML = locations.map(loc => {
-        if (schTotals[loc] === 0) return '';
-        return '<tr><td style="position:sticky;left:0;z-index:1;background:#0a1628;white-space:nowrap;font-weight:600;font-size:0.75rem;">' + escapeHtml(loc) + '</td>' +
-            dateKeys.map((k,i) => {
-                const v = schMatrix[loc][k];
-                const bg = v > 10 ? 'rgba(168,85,247,0.3)' : v > 5 ? 'rgba(168,85,247,0.15)' : v > 0 ? 'rgba(168,85,247,0.06)' : '';
-                return `<td style="text-align:center;font-size:0.75rem;${bg?'background:'+bg+';':''}${dateLabels[i].isWeekend?'opacity:0.4;':''}">${v||''}</td>`;
-            }).join('') +
-            '<td style="font-weight:700;color:#a855f7;">' + schTotals[loc] + '</td></tr>';
-    }).filter(r=>r).join('') +
-    '<tr class="pivot-total"><td style="position:sticky;left:0;z-index:1;background:#0f1f3d;"><strong>TOTALE</strong></td>' +
-    dateKeys.map(k => `<td style="text-align:center;font-size:0.75rem;font-weight:700;color:#a855f7;">${daySchTotals[k]||''}</td>`).join('') +
-    '<td style="font-weight:700;color:#eab308;">' + Object.values(schTotals).reduce((a,b)=>a+b,0) + '</td></tr>';
-}
-
-function exportEOQTable(tableId, filename) {
-    const table = document.getElementById(tableId);
-    if (table) downloadTableCSV(table, filename);
-}
                     }
                 }
             },
@@ -3299,4 +3175,129 @@ function copyVinList() {
         document.body.removeChild(ta);
         alert('VIN copiati: ' + _currentNotAtHub.length);
     });
+}
+
+/* ============================================================
+   END OF QUARTER — Pivot giornaliere arrivi + consegne
+   ============================================================ */
+
+function _getQuarterEnd() {
+    const today = new Date();
+    const month = today.getMonth();
+    const year = today.getFullYear();
+    const qEndMonth = Math.floor(month / 3) * 3 + 2; // 2=Mar, 5=Giu, 8=Set, 11=Dic
+    const lastDay = new Date(year, qEndMonth + 1, 0); // ultimo giorno del mese
+    return lastDay;
+}
+
+function openEOQ() {
+    document.getElementById('eoqOverlay').style.display = 'flex';
+    renderEOQ();
+}
+
+function closeEOQ() {
+    document.getElementById('eoqOverlay').style.display = 'none';
+}
+
+function renderEOQ() {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const qEnd = _getQuarterEnd(); qEnd.setHours(23,59,59);
+
+    document.getElementById('eoqDateRange').textContent =
+        today.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}) + ' — ' +
+        qEnd.toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+
+    // Build date columns (today to end of quarter)
+    const dates = [];
+    const d = new Date(today);
+    while (d <= qEnd) {
+        dates.push(new Date(d));
+        d.setDate(d.getDate() + 1);
+    }
+
+    const locations = [...new Set(rawData.map(r => r.location))].filter(l => l && l !== 'N/A').sort();
+    const dateKeys = dates.map(d => d.toISOString().split('T')[0]);
+    const dateLabels = dates.map(d => {
+        const day = d.getDay();
+        const label = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+        return { label, isWeekend: day === 0 || day === 6 };
+    });
+
+    // ── Pivot 1: Arrivi (VehicleETAToService / date) ──
+    const arrMatrix = {};
+    const arrTotals = {};
+    locations.forEach(loc => { arrMatrix[loc] = {}; arrTotals[loc] = 0; dateKeys.forEach(k => arrMatrix[loc][k] = 0); });
+    const dayArrTotals = {}; dateKeys.forEach(k => dayArrTotals[k] = 0);
+
+    rawData.forEach(r => {
+        if (!r.date || !r.location || !arrMatrix[r.location]) return;
+        const k = r.date.toISOString().split('T')[0];
+        if (arrMatrix[r.location][k] !== undefined) {
+            arrMatrix[r.location][k]++;
+            arrTotals[r.location]++;
+            dayArrTotals[k]++;
+        }
+    });
+
+    // Render arrivals pivot
+    const aHead = document.getElementById('eoqArrivalsHead');
+    const aBody = document.getElementById('eoqArrivalsBody');
+    aHead.innerHTML = '<tr><th style="position:sticky;left:0;z-index:2;background:#0f1f3d;">Location</th>' +
+        dateLabels.map((d,i) => `<th style="min-width:36px;font-size:0.55rem;${d.isWeekend?'color:#5a7a9e;opacity:0.5;':''}">${d.label}</th>`).join('') +
+        '<th>TOT</th></tr>';
+
+    aBody.innerHTML = locations.map(loc => {
+        if (arrTotals[loc] === 0) return '';
+        return '<tr><td style="position:sticky;left:0;z-index:1;background:#0a1628;white-space:nowrap;font-weight:600;font-size:0.75rem;">' + escapeHtml(loc) + '</td>' +
+            dateKeys.map((k,i) => {
+                const v = arrMatrix[loc][k];
+                const bg = v > 10 ? 'rgba(6,182,212,0.3)' : v > 5 ? 'rgba(6,182,212,0.15)' : v > 0 ? 'rgba(6,182,212,0.06)' : '';
+                return `<td style="text-align:center;font-size:0.75rem;${bg?'background:'+bg+';':''}${dateLabels[i].isWeekend?'opacity:0.4;':''}">${v||''}</td>`;
+            }).join('') +
+            '<td style="font-weight:700;color:#06b6d4;">' + arrTotals[loc] + '</td></tr>';
+    }).filter(r=>r).join('') +
+    '<tr class="pivot-total"><td style="position:sticky;left:0;z-index:1;background:#0f1f3d;"><strong>TOTALE</strong></td>' +
+    dateKeys.map(k => `<td style="text-align:center;font-size:0.75rem;font-weight:700;color:#06b6d4;">${dayArrTotals[k]||''}</td>`).join('') +
+    '<td style="font-weight:700;color:#eab308;">' + Object.values(arrTotals).reduce((a,b)=>a+b,0) + '</td></tr>';
+
+    // ── Pivot 2: Consegne schedulate (ScheduledDeliveryDate) ──
+    const schMatrix = {};
+    const schTotals = {};
+    locations.forEach(loc => { schMatrix[loc] = {}; schTotals[loc] = 0; dateKeys.forEach(k => schMatrix[loc][k] = 0); });
+    const daySchTotals = {}; dateKeys.forEach(k => daySchTotals[k] = 0);
+
+    rawData.forEach(r => {
+        if (!r.deliveryDate || !r.location || !schMatrix[r.location]) return;
+        const k = r.deliveryDate.toISOString().split('T')[0];
+        if (schMatrix[r.location][k] !== undefined) {
+            schMatrix[r.location][k]++;
+            schTotals[r.location]++;
+            daySchTotals[k]++;
+        }
+    });
+
+    const sHead = document.getElementById('eoqScheduleHead');
+    const sBody = document.getElementById('eoqScheduleBody');
+    sHead.innerHTML = '<tr><th style="position:sticky;left:0;z-index:2;background:#0f1f3d;">Location</th>' +
+        dateLabels.map((d,i) => `<th style="min-width:36px;font-size:0.55rem;${d.isWeekend?'color:#5a7a9e;opacity:0.5;':''}">${d.label}</th>`).join('') +
+        '<th>TOT</th></tr>';
+
+    sBody.innerHTML = locations.map(loc => {
+        if (schTotals[loc] === 0) return '';
+        return '<tr><td style="position:sticky;left:0;z-index:1;background:#0a1628;white-space:nowrap;font-weight:600;font-size:0.75rem;">' + escapeHtml(loc) + '</td>' +
+            dateKeys.map((k,i) => {
+                const v = schMatrix[loc][k];
+                const bg = v > 10 ? 'rgba(168,85,247,0.3)' : v > 5 ? 'rgba(168,85,247,0.15)' : v > 0 ? 'rgba(168,85,247,0.06)' : '';
+                return `<td style="text-align:center;font-size:0.75rem;${bg?'background:'+bg+';':''}${dateLabels[i].isWeekend?'opacity:0.4;':''}">${v||''}</td>`;
+            }).join('') +
+            '<td style="font-weight:700;color:#a855f7;">' + schTotals[loc] + '</td></tr>';
+    }).filter(r=>r).join('') +
+    '<tr class="pivot-total"><td style="position:sticky;left:0;z-index:1;background:#0f1f3d;"><strong>TOTALE</strong></td>' +
+    dateKeys.map(k => `<td style="text-align:center;font-size:0.75rem;font-weight:700;color:#a855f7;">${daySchTotals[k]||''}</td>`).join('') +
+    '<td style="font-weight:700;color:#eab308;">' + Object.values(schTotals).reduce((a,b)=>a+b,0) + '</td></tr>';
+}
+
+function exportEOQTable(tableId, filename) {
+    const table = document.getElementById(tableId);
+    if (table) downloadTableCSV(table, filename);
 }
